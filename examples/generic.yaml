@@ -1,0 +1,64 @@
+###
+### Generic configuration file
+### All directives can be overridden in either the per-host or template configuration files
+###
+### Available Directives:
+###     Zones: Zones to be defined
+###     AddressGroups: Define address groups which can be used in firewall rules or NAT's
+###     NetworkGroups: Define network groups which can be used in firewall rules or NAT's
+###     PortGroups: Define port groups which can be used in firewall rules or NAT's
+###     RuleTemplates: Defines rules which can be used in firewall zones
+###     FirewallRules: Add rules to zones
+###     NATRules: Defines NAT rules
+###
+### Notes:
+###     Any option available on the VyOS CLI can be defined
+###
+
+Zones:
+    - External
+    - Servers
+
+AddressGroups:
+    TrustedHost:
+        - 8.8.8.8
+
+NetworkGroups:
+    TrustedNetwork:
+        - 8.0.0.0/8
+
+PortGroups:
+    TrustedPorts:
+        - 8
+        - 88
+
+FirewallTemplates:
+    ALLOW_TRUSTED_TRAFFIC:
+        description: Allows trusted traffic
+        number: 100
+        action: accept
+        protocol: tcp_udp
+        log: ''
+        source:
+            - address 0.0.0.0/0
+        destination:
+            - group address-group TrustedHost
+            - group port-group TrustedPorts
+
+FirewallRules:
+    Servers-To-External:
+        - ALLOW_TRUSTED_TRAFFIC
+
+NATRules:
+    source:
+        1:
+            description: S-NAT Everything
+            inbound-outbound: any
+            protocol: tcp_udp
+            translation: 1.2.3.4
+            source:
+                - address 172.19.0.0/24
+                - port 8,88
+            destination:
+                - address 0.0.0.0/0
+

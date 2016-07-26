@@ -1,0 +1,10 @@
+###
+### Role configuration file
+### Directives here override those specified in the generic configuration file
+### Use this to define rules for specific role where multiple routers should have the same configuration.
+### Example: edge-routers, internal-firewall, openvpn-firewall etc etc...
+###
+### Available Directives:
+###     * All directives available in the generic configuration file
+###
+
