@@ -9,6 +9,11 @@
 ###     role: Firewall template to include
 ###
 
-role: edge-router
+role: examples/roles/london/edge-router.yaml
 
-
+RuleTemplates:
+    PerHostRule:
+        description: Allows trusted traffic
+        number: 120
+        action: accept
+        protocol: tcp_udp

@@ -8,3 +8,6 @@
 ###     * All directives available in the generic configuration file
 ###
 
+AddressGroups:
+    GroupFromRole:
+        - 9.9.9.9

@@ -32,7 +32,7 @@ PortGroups:
         - 8
         - 88
 
-FirewallTemplates:
+RuleTemplates:
     ALLOW_TRUSTED_TRAFFIC:
         description: Allows trusted traffic
         number: 100
