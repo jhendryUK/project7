@@ -23,6 +23,7 @@ def BaseRuleSet(fw):
 if __name__ == '__main__':
     firewall = fw_utils.FirewallHost('config/hosts/london/router1.yaml')
 
-    firewall = BaseRuleSet(firewall)
-    firewall.add_rule('Servers-To-External', 'ALLOW_RFC1918_SSH')
-    firewall.config()
+#    firewall = BaseRuleSet(firewall)
+#    firewall.add_rule('Servers-To-External', 'ALLOW_RFC1918_SSH')
+#    firewall.add_rule('Servers-To-External', 'ALLOW_CONNTRACK_SYNC_UNICAST')
+    print firewall.config()

@@ -17,16 +17,14 @@
 
 Zones:
     - Self
-    - DMZ
     - External
     - Servers
     - Management
 
 
-ZoneClasses:
-    Untrusted:
-        - DMZ
-        - External
+RestrictedZones:
+    - DMZ
+    - External
 
 
 AddressGroups:
@@ -162,7 +160,7 @@ RuleTemplates:
             - port 3780
 
     ALLOW_RFC1918_SSH:
-        number: 63
+        number: 64
         action: accept
         protocol: tcp
         description: Allow SSH from RFC1918
@@ -184,6 +182,12 @@ FirewallRules:
         - ALLOW_ICMP_ECHO_REQUEST
         - ALLOW_ICMP_TIME_EXCEEDED
         - DROP_ICMP
+        
+    UNRESTRICTED_ZONES:
+        - ALLOW_RFC1918_SSH
+
+    Servers-To-External:
+        - ALLOW_CONNTRACK_SYNC_UNICAST
 
 NATRules:
     source:
