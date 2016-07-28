@@ -19,6 +19,9 @@ Zones:
     - External
     - Servers
 
+RestrictedZones:
+    - External
+
 AddressGroups:
     TrustedHost:
         - 8.8.8.8
@@ -61,4 +64,16 @@ NATRules:
                 - port 8,88
             destination:
                 - address 0.0.0.0/0
+
+    destination:
+        100:
+            description: D-NAT Everything
+            inbound-outbound: any
+            protocol: tcp_udp
+            translation: 172.234.0.10
+            source:
+                - address 0.0.0.0
+            destination:
+                - address 1.2.3.4
+                - port 8,88
 

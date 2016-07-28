@@ -11,9 +11,27 @@
 
 role: examples/roles/london/edge-router.yaml
 
+Zones:
+
+
+RestrictedZones:
+
+
+AddressGroups:
+
+
+NetworkGroups:
+
+
+PortGroups:
+
+
 RuleTemplates:
-    PerHostRule:
-        description: Allows trusted traffic
-        number: 120
-        action: accept
-        protocol: tcp_udp
+
+
+FirewallRules:
+
+
+NATRules:
+
+

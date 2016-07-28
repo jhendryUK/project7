@@ -23,16 +23,10 @@ Zones:
 
 
 RestrictedZones:
-    - DMZ
     - External
 
 
 AddressGroups:
-    ConntrackSyncPeers:
-        - 8.8.8.8
-
-    ConntrackSyncMulticast:
-        - 225.0.0.50
 
 
 NetworkGroups:
@@ -42,7 +36,7 @@ NetworkGroups:
         - 192.168.0.0/16
 
 
-#PortGroups:
+PortGroups:
 
 
 RuleTemplates:
@@ -124,41 +118,6 @@ RuleTemplates:
         action: drop
         protocol: icmp
 
-    ALLOW_VRRP:
-        number: 60
-        description: Allow VRRP from peers
-        action: accept
-        protocol: vrrp
-        source:
-            - group address-group VRRPPeers
-
-    ALLOW_VRRP:
-        number: 61
-        description: Drop all other VRRP
-        action: drop
-        protocol: vrrp
-
-    ALLOW_CONNTRACK_SYNC_MULTICAST:
-        number: 62
-        action: accept
-        protocol: udp
-        description: Allow conntrack-sync via Multicast
-        source:
-            - group address-group ConntrackSyncPeers
-        destination:
-            - group address-group ConntrackSyncMulticast
-
-    ALLOW_CONNTRACK_SYNC_UNICAST:
-        number: 63
-        action: accept
-        protocol: udp
-        description: Allow conntrack-sync via Unicast
-        source:
-            - group address-group ConntrackSyncPeers
-        destination:
-            - group address-group ConntrackSyncPeers
-            - port 3780
-
     ALLOW_RFC1918_SSH:
         number: 64
         action: accept
@@ -186,19 +145,11 @@ FirewallRules:
     UNRESTRICTED_ZONES:
         - ALLOW_RFC1918_SSH
 
-    Servers-To-External:
-        - ALLOW_CONNTRACK_SYNC_UNICAST
 
 NATRules:
     source:
-        1:
-            description: S-NAT Everything
-            inbound-outbound: any
-            protocol: tcp_udp
-            translation: 1.2.3.4
-            source:
-                - address 172.19.0.0/24
-                - port 8,88
-            destination:
-                - address 0.0.0.0/0
+
+
+    destination:
+
 

@@ -63,7 +63,7 @@ class GroupManager(object):
                     self.groups.append(name)
                     setattr(self, name, ips)
         
-            except KeyError:
+            except (KeyError, AttributeError):
                 pass
 
 
@@ -132,7 +132,7 @@ class RuleTemplates(RuleManager):
                     self.rules.append(name)
                     setattr(self, name, options)
 
-            except KeyError:
+            except (KeyError, AttributeError):
                 pass
 
 
@@ -174,7 +174,7 @@ class RuleTemplates(RuleManager):
 
                 config += "        up\n"
 
-            config += "   top\n"
+            config += "    top\n"
 
         return config
             
@@ -194,7 +194,7 @@ class NATRules(RuleManager):
                         self.rules[rule_type][rule_number] = rule_data
                         setattr(self, "{0}_{1}".format(rule_type, rule_number), rule_data)
                     
-                except KeyError:
+                except (AttributeError, KeyError, TypeError):
                     pass
 
     def __str__(self):
@@ -230,7 +230,7 @@ class NATRules(RuleManager):
 
 class FirewallHost(object):
 
-    def __init__(self, custom_config_file, generic_config_file='config/generic.yaml'):
+    def __init__(self, host_config_file, generic_config_file='config/generic.yaml'):
         """"""
 
         self._zones = []
@@ -239,14 +239,14 @@ class FirewallHost(object):
         self._port_groups = []
         self._rules = {}
 
-        custom_config = self._load_config(custom_config_file)
+        custom_config = self._load_config(host_config_file)
         generic_config = self._load_config(generic_config_file)
         all_configs = [generic_config, custom_config]
 
         try:
             role_config = self._load_config(custom_config['role'])
             all_configs.insert(1, role_config)
-        except KeyError:
+        except (KeyError, AttributeError):
             pass
 
         self._yaml_address_groups = GroupManager('address', all_configs)
@@ -279,7 +279,7 @@ class FirewallHost(object):
                 for zone in config['Zones']:
                     self._zones.append(zone)
             
-            except KeyError:
+            except (AttributeError, KeyError, TypeError):
                 pass
 
         if not self._zones:
@@ -301,7 +301,7 @@ class FirewallHost(object):
                 for rule_name in config['FirewallRules']['ALL_ZONES']:
                     for zone in self:
                         self.add_rule(zone, rule_name)
-            except KeyError:
+            except (AttributeError, KeyError, TypeError):
                 pass
 
             try:
@@ -309,14 +309,14 @@ class FirewallHost(object):
                     for zone in self:
                         if self._neither_zone_is_restricted(zone, restricted_zones):
                             self.add_rule(zone, rule_name)
-            except KeyError:
+            except (AttributeError, KeyError, TypeError):
                 pass
 
             for zone in self:
                 try:
                     for rule_name in config['FirewallRules'][zone]:
                         self.add_rule(zone, rule_name)
-                except KeyError:
+                except (AttributeError, KeyError, TypeError):
                     pass
 
 
@@ -385,13 +385,39 @@ class FirewallHost(object):
     def config(self, brief=False):
 
         self._define_groups()
-        config = self._generate_group_config('address', brief)
+        config = self._generic_settings()
+        config += self._generate_group_config('address', brief)
         config += self._generate_group_config('network', brief)
         config += self._generate_group_config('port', brief)
         config += self._generate_firewall_config(brief)
         config += self._generate_nat_rules(brief)
         
         return config
+
+
+    def _generic_settings(self):
+        """Generate default options"""
+
+        config = generate_large_msg('Generic Firewall Settings')
+        firewall_options = {'all-ping': 'enable',
+                            'broadcast-ping': 'disable',
+                            'ip-src-route': 'disable',
+                            'ipv6-receive-redirects': 'disable',
+                            'ipv6-src-route': 'disable',
+                            'log-martians': 'disable',
+                            'receive-redirects': 'disable',
+                            'send-redirects': 'enable',
+                            'source-validation': 'disable',
+                            'syn-cookies': 'enable',
+                            }
+
+        config += "edit firewall\n"
+        for option, value in firewall_options.iteritems():
+            config += "   delete {0}\n".format(option)
+            config += "   set {0} {1}\n".format(option, value)
+        config += "   top\n"
+        return config
+
 
     def _generate_group_config(self, group_type, brief=False):
         """Generate VyOS configuration for a group type"""
@@ -452,6 +478,41 @@ class FirewallHost(object):
 
         return config
 
+
+    def zone_policy(self, brief=False):
+        """Print the zone policy for this host"""
+
+        config = generate_large_msg('Zone Policies')
+
+        if not brief:
+            config += generate_small_msg('Delete zone policy')
+            config += "delete zone-policy\n"
+
+        if brief:
+            for dst in self._zones:
+                config += generate_small_msg("ZONE: {0}".format(dst))
+                for src in self._zones:
+                    fw_name = 'ALLOW-ALL' if src == 'Self' else "{0}-To-{1}".format(src, dst)
+                    config += "    From Zone {0} Apply Firewall {1}\n".format(src, fw_name)
+                config += '\n'
+
+        else:
+            for dst in self._zones:
+                config += generate_small_msg("ZONE: {0}".format(dst))
+                config += "edit zone-policy zone {0}\n".format(dst)
+                config += "    set default-action reject\n"
+    
+                for src in self._zones:
+                    if dst != src:
+                        fw_name = 'ALLOW-ALL' if src == 'Self' else "{0}-To-{1}".format(src, dst)
+                        config += "    set from {0} firewall name {1}\n".format(src, fw_name)
+    
+                if dst == 'Self':
+                    config += '    set local-zone\n'
+    
+                config += '    top\n'
+
+        return config
 
 
 def generate_large_msg(msg):

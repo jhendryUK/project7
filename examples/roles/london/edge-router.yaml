@@ -8,6 +8,27 @@
 ###     * All directives available in the generic configuration file
 ###
 
+Zones:
+
+
+RestrictedZones:
+
+
 AddressGroups:
-    GroupFromRole:
-        - 9.9.9.9
+
+
+NetworkGroups:
+
+
+PortGroups:
+
+
+RuleTemplates:
+
+
+FirewallRules:
+
+
+NATRules:
+
+
