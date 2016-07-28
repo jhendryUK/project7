@@ -22,6 +22,7 @@ exit
     
     return config
 
+
 def SaveFirewallConfig(fw_config, fw_file):
     """Saves the firewall config ready to be commited"""
 
@@ -39,21 +40,15 @@ def main():
                                     epilog="Example: {0} --host config/hosts/london/router1.yaml".format(sys.argv[0]))
     parser.add_argument('-b', '--brief', dest='brief', action='store_true', default=False, help='Print a the brief view of the firewall')
     parser.add_argument('--host', dest='host', required='true', help='Host to generate the firewall for')
-    parser.add_argument('--zone-policy', dest='zone_policy', action='store_true', default=False, help='Generate the zone-policy instead of the firewall')
     args = parser.parse_args()
 
     firewall = fw_utils.FirewallHost(args.host)
-
-    if args.zone_policy:
-        fw_config = firewall.zone_policy(args.brief)
-    else:
-        fw_config = firewall.config(args.brief)
+    fw_config = firewall.config(args.brief)
 
     if args.brief:
         print fw_config
     else:
         SaveFirewallConfig(GenerateVBashConfig(fw_config), args.host.replace('.yaml', '.vbash'))
-
 
 if __name__ == '__main__':
     main()

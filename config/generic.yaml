@@ -26,6 +26,17 @@ RestrictedZones:
     - External
 
 
+ZonePolicy:
+    FilterSelfOutbound: False
+    Interfaces:
+        External:
+            - eth0
+        Servers:
+            - eth1
+        Management:
+            - eth2
+
+
 AddressGroups:
 
 
