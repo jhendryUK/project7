@@ -25,6 +25,12 @@ class ErrorRedefiningRuleTemplate(Exception):
 class ErrorRedefiningRuleTemplateNumber(Exception):
     pass
 
+class ErrorNotDefinedSelfOutboundPolicy(Exception):
+    pass
+
+class ErrorZoneHasNoInterfaces(Exception):
+    pass
+
 class GroupManager(object):
 
     def __init__(self, group_type, configs):
@@ -234,10 +240,12 @@ class FirewallHost(object):
         """"""
 
         self._zones = []
+        self._zone_interfaces = {}
         self._address_groups = []
         self._network_groups = []
         self._port_groups = []
         self._rules = {}
+        self._self_filter_outbound = None
 
         custom_config = self._load_config(host_config_file)
         generic_config = self._load_config(generic_config_file)
@@ -270,7 +278,7 @@ class FirewallHost(object):
             if e.errno == 2:
                 raise ErrorConfigFileDoesNotExist(config_file)
 
-    
+
     def _prepare_zones(self, configs):
         """Define zones for this firewall"""
 
@@ -278,6 +286,7 @@ class FirewallHost(object):
             try:
                 for zone in config['Zones']:
                     self._zones.append(zone)
+                    self._zone_interfaces[zone] = []
             
             except (AttributeError, KeyError, TypeError):
                 pass
@@ -285,11 +294,50 @@ class FirewallHost(object):
         if not self._zones:
             raise ErrorHostHasNoZonesDefined()
 
+        self._prepare_zone_policy(configs)
+
         for src, dst in itertools.permutations(self._zones, 2):
-            if src != 'Self':
+            if self._filter_outbound(src):
                 zone = "{0}-To-{1}".format(src, dst)
                 self._rules[zone] = []
 
+
+    def _prepare_zone_policy(self, configs):
+
+        filter_outbound = None
+        try:
+            for config in configs:
+                if filter_outbound is None:
+                    filter_outbound = config['ZonePolicy']['FilterSelfOutbound']
+
+                for zone in self._zones:
+                    try:
+                        for interface in config['ZonePolicy']['Interfaces'][zone]:
+                            if not interface in self._zone_interfaces[zone]:
+                                self._zone_interfaces[zone].append(interface)
+                    except (AttributeError, KeyError, TypeError):
+                        pass
+
+        except (AttributeError, KeyError, TypeError):
+            pass
+
+        if filter_outbound is None:
+            raise ErrorNotDefinedSelfOutboundPolicy()
+        else:
+            self._self_filter_outbound = filter_outbound
+
+        for zone in self._zones:
+            if zone != 'Self':
+                if not self._zone_interfaces[zone]:
+                    raise ErrorZoneHasNoInterfaces(zone)
+
+    def _filter_outbound(self, zone):
+        
+        result = True
+        if zone == 'Self' and not self._self_filter_outbound:
+            result = False
+        return result
+    
 
     def _add_yaml_firewall_rules(self, configs):
         """Read rules from YAML file and adds them to the firewall"""
@@ -385,17 +433,18 @@ class FirewallHost(object):
     def config(self, brief=False):
 
         self._define_groups()
-        config = self._generic_settings()
+        config = self._generic_settings(brief)
         config += self._generate_group_config('address', brief)
         config += self._generate_group_config('network', brief)
         config += self._generate_group_config('port', brief)
         config += self._generate_firewall_config(brief)
+        config += self._zone_policy(brief)
         config += self._generate_nat_rules(brief)
         
         return config
 
 
-    def _generic_settings(self):
+    def _generic_settings(self, brief):
         """Generate default options"""
 
         config = generate_large_msg('Generic Firewall Settings')
@@ -411,11 +460,17 @@ class FirewallHost(object):
                             'syn-cookies': 'enable',
                             }
 
-        config += "edit firewall\n"
-        for option, value in firewall_options.iteritems():
-            config += "   delete {0}\n".format(option)
-            config += "   set {0} {1}\n".format(option, value)
-        config += "   top\n"
+        
+        if brief:
+            for option, value in firewall_options.iteritems():
+                config += "{0}: {1}\n".format(option, value)
+        else:
+            config += "edit firewall\n"
+            for option, value in firewall_options.iteritems():
+                config += "   delete {0}\n".format(option)
+                config += "   set {0} {1}\n".format(option, value)
+            config += "   top\n"
+
         return config
 
 
@@ -479,7 +534,7 @@ class FirewallHost(object):
         return config
 
 
-    def zone_policy(self, brief=False):
+    def _zone_policy(self, brief=False):
         """Print the zone policy for this host"""
 
         config = generate_large_msg('Zone Policies')
@@ -492,7 +547,7 @@ class FirewallHost(object):
             for dst in self._zones:
                 config += generate_small_msg("ZONE: {0}".format(dst))
                 for src in self._zones:
-                    fw_name = 'ALLOW-ALL' if src == 'Self' else "{0}-To-{1}".format(src, dst)
+                    fw_name = "{0}-To-{1}".format(src, dst) if self._filter_outbound(src) else 'ALLOW-ALL'
                     config += "    From Zone {0} Apply Firewall {1}\n".format(src, fw_name)
                 config += '\n'
 
@@ -501,10 +556,12 @@ class FirewallHost(object):
                 config += generate_small_msg("ZONE: {0}".format(dst))
                 config += "edit zone-policy zone {0}\n".format(dst)
                 config += "    set default-action reject\n"
-    
+                for interface in self._zone_interfaces[dst]:
+                    config += "    set interface {0}\n".format(interface)
+
                 for src in self._zones:
                     if dst != src:
-                        fw_name = 'ALLOW-ALL' if src == 'Self' else "{0}-To-{1}".format(src, dst)
+                        fw_name = "{0}-To-{1}".format(src, dst) if self._filter_outbound(src) else 'ALLOW-ALL'
                         config += "    set from {0} firewall name {1}\n".format(src, fw_name)
     
                 if dst == 'Self':
