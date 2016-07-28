@@ -1,0 +1,200 @@
+###
+### Generic configuration file
+### All directives can be overridden in either the per-host or template configuration files
+###
+### Available Directives:
+###     Zones: Zones to be defined
+###     AddressGroups: Define address groups which can be used in firewall rules or NAT's
+###     NetworkGroups: Define network groups which can be used in firewall rules or NAT's
+###     PortGroups: Define port groups which can be used in firewall rules or NAT's
+###     RuleTemplates: Defines rules which can be used in firewall zones
+###     FirewallRules: Add rules to zones
+###     NATRules: Defines NAT rules
+###
+### Notes:
+###     Any option available on the VyOS CLI can be defined
+###
+
+Zones:
+    - Self
+    - DMZ
+    - External
+    - Servers
+    - Management
+
+
+ZoneClasses:
+    Untrusted:
+        - DMZ
+        - External
+
+
+AddressGroups:
+    ConntrackSyncPeers:
+        - 8.8.8.8
+
+    ConntrackSyncMulticast:
+        - 225.0.0.50
+
+
+NetworkGroups:
+    RFC1918:
+        - 10.0.0.0/8
+        - 172.16.0.0/12
+        - 192.168.0.0/16
+
+
+#PortGroups:
+
+
+RuleTemplates:
+    BLOCK_RFC1918:
+        number: 15
+        description: Block RFC1918
+        action: drop
+        source:
+            - group network-group RFC1918
+    
+    ALLOW_ESTABLISHED:
+        number: 25
+        description: Allow established
+        action: accept
+        protocol: all
+        state: established enable
+    
+    ALLOW_RELATED:
+        number: 26
+        description: Allows related
+        action: accept
+        protocol: all
+        state: related enable
+    
+    DROP_INVALID_STATE:
+        number: 35
+        description: Drop invalid state
+        disable: ''
+        action: drop
+        protocol: all
+        state: invalid enable
+
+    ALLOW_ICMP_ECHO_REPLY:
+        number: 45
+        description: Allow ICMP Echo Reply
+        action: accept
+        protocol: icmp
+        icmp: type 0
+    
+    ALLOW_ICMP_DEST_UNRECH:
+        number: 46
+        description: Allow ICMP Destination Unreachable
+        icmp: type 3
+        action: accept
+        protocol: icmp
+    
+    ALLOW_ICMP_QUENCH:
+        number: 47
+        description: Allow ICMP Source Quench
+        icmp: type 4
+        action: accept
+        protocol: icmp
+    
+    ALLOW_ICMP_REDIRECT:
+        number: 48
+        description: Allow ICMP Redirect
+        icmp: type 5
+        action: accept
+        protocol: icmp
+    
+    ALLOW_ICMP_ECHO_REQUEST:
+        number: 49
+        description: Allow ICMP Echo Request
+        icmp: type 8
+        action: accept
+        protocol: icmp
+    
+    ALLOW_ICMP_TIME_EXCEEDED:
+        number: 50
+        description: Allow ICMP Time Exceeded
+        icmp: type 11
+        action: accept
+        protocol: icmp
+    
+    DROP_ICMP:
+        number: 55
+        description: Drop ICMP
+        log: enable
+        action: drop
+        protocol: icmp
+
+    ALLOW_VRRP:
+        number: 60
+        description: Allow VRRP from peers
+        action: accept
+        protocol: vrrp
+        source:
+            - group address-group VRRPPeers
+
+    ALLOW_VRRP:
+        number: 61
+        description: Drop all other VRRP
+        action: drop
+        protocol: vrrp
+
+    ALLOW_CONNTRACK_SYNC_MULTICAST:
+        number: 62
+        action: accept
+        protocol: udp
+        description: Allow conntrack-sync via Multicast
+        source:
+            - group address-group ConntrackSyncPeers
+        destination:
+            - group address-group ConntrackSyncMulticast
+
+    ALLOW_CONNTRACK_SYNC_UNICAST:
+        number: 63
+        action: accept
+        protocol: udp
+        description: Allow conntrack-sync via Unicast
+        source:
+            - group address-group ConntrackSyncPeers
+        destination:
+            - group address-group ConntrackSyncPeers
+            - port 3780
+
+    ALLOW_RFC1918_SSH:
+        number: 63
+        action: accept
+        protocol: tcp
+        description: Allow SSH from RFC1918
+        source:
+            - group network-group RFC1918
+        destination:
+            - group network-group RFC1918
+            - port 22
+
+
+FirewallRules:
+    ALL_ZONES:
+        - ALLOW_ESTABLISHED
+        - ALLOW_RELATED
+        - DROP_INVALID_STATE
+        - ALLOW_ICMP_ECHO_REPLY
+        - ALLOW_ICMP_DEST_UNRECH
+        - ALLOW_ICMP_QUENCH
+        - ALLOW_ICMP_ECHO_REQUEST
+        - ALLOW_ICMP_TIME_EXCEEDED
+        - DROP_ICMP
+
+NATRules:
+    source:
+        1:
+            description: S-NAT Everything
+            inbound-outbound: any
+            protocol: tcp_udp
+            translation: 1.2.3.4
+            source:
+                - address 172.19.0.0/24
+                - port 8,88
+            destination:
+                - address 0.0.0.0/0
+
