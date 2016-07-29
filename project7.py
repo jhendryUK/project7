@@ -44,7 +44,12 @@ def main():
     parser.add_argument('-b', '--brief', dest='brief', action='store_true', default=False, help='Print a brief view of the firewall')
     parser.add_argument('-c', '--commit', dest='commit', action='store_true', default=False, help='Change the action of the .vbash script to commit')
     parser.add_argument('-s', '--save', dest='save', action='store_true', default=False, help='Add a save option to the end of the .vbash script')
-    parser.add_argument('--config', dest='config', default='examples/simple_example.yaml', help='Config to generate a firewall from')
+    parser.add_argument('--config', dest='config', required=True, help='Config to generate a firewall from')
+
+    if len(sys.argv) == 1:
+        parser.print_help()
+        sys.exit(1)
+
     args = parser.parse_args()
 
     firewall = fw_utils.FirewallHost(args.config)

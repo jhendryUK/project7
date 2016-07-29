@@ -92,12 +92,31 @@ RuleTemplates:
             - group address-group TrustedHost
             - group port-group TrustedPorts
 
+    ALLOW_INBOUND:
+        description: Alloq all inbound traffic
+        number: 10
+        action: accept
+
+    ALLOW_OUTBOUND:
+        description: Alloq all inbound traffic
+        number: 20
+        action: accept
+
+
 FirewallRules:
     ALL_ZONES:
         - DROP_ICMP
 
     UNRESTRICTED_ZONES:
         - ALLOW_RFC1918_SSH
+
+    DESTINATION_ZONE:
+        External:
+            - ALLOW_INBOUND
+
+    SOURCE_ZONE:
+        Servers:
+            - ALLOW_OUTBOUND
         
     Servers-To-External:
         - ALLOW_TRUSTED_TRAFFIC

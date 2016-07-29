@@ -163,6 +163,9 @@ FirewallRules:
     UNRESTRICTED_ZONES:
         - ALLOW_RFC1918_SSH
 
+    DESTINATION_ZONE:
+
+    SOURCE_ZONE:
 
 NATRules:
     source:

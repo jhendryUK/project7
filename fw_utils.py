@@ -251,9 +251,8 @@ class FirewallHost(object):
         all_configs = [self._load_config(config_file)]
 
         try:
-            for config in all_configs:
-                for role_config_file in reversed(config['IncludeConfigs']):
-                    all_configs.insert(0, self._load_config(role_config_file))
+            for role_config_file in reversed(all_configs[0]['IncludeConfigs']):
+                all_configs.insert(0, self._load_config(role_config_file))
         except (AttributeError, KeyError, TypeError):
             pass
 
@@ -350,25 +349,48 @@ class FirewallHost(object):
         """Read rules from YAML file and adds them to the firewall"""
 
         for config in configs:
+            # Get restricted zones
             try:
                 restricted_zones = config.get('RestrictedZones', [])
             except (AttributeError, KeyError, TypeError):
                 pass
 
-            try:
-                for rule_name in config['FirewallRules']['ALL_ZONES']:
-                    for zone in self:
+            # Add rules defined for all zones
+            for zone in self:
+                try:
+                    for rule_name in config['FirewallRules']['ALL_ZONES']:
                         self.add_rule(zone, rule_name)
-            except (AttributeError, KeyError, TypeError):
-                pass
+                except (AttributeError, KeyError, TypeError):
+                    pass
 
-            try:
-                for rule_name in config['FirewallRules']['UNRESTRICTED_ZONES']:
-                    for zone in self:
-                        if self._neither_zone_is_restricted(zone, restricted_zones):
+            # Add rules for all unrestricted zones
+            for zone in self:
+                if self._neither_zone_is_restricted(zone, restricted_zones):
+                    try:
+                        for rule_name in config['FirewallRules']['UNRESTRICTED_ZONES']:
                             self.add_rule(zone, rule_name)
-            except (AttributeError, KeyError, TypeError):
-                pass
+                    except (AttributeError, KeyError, TypeError):
+                        pass
+
+            # Add rules for all zones where the destination zone is X
+            for zone_pair in self:
+                try:
+                    for zone, rules in config['FirewallRules']['DESTINATION_ZONE'].iteritems():
+                        for rule in rules:
+                            if self._zone_match(zone_pair, zone, 'destination'):
+                                self.add_rule(zone_pair, rule)
+                except (AttributeError, KeyError, TypeError):
+                    pass
+
+            # Add rules for all zones where the source zone is X
+            for zone_pair in self:
+                try:
+                    for zone, rules in config['FirewallRules']['SOURCE_ZONE'].iteritems():
+                        for rule in rules:
+                            if self._zone_match(zone_pair, zone, 'source'):
+                                self.add_rule(zone_pair, rule)
+                except (AttributeError, KeyError, TypeError):
+                    pass
 
             for zone in self:
                 try:
@@ -376,6 +398,14 @@ class FirewallHost(object):
                         self.add_rule(zone, rule_name)
                 except (AttributeError, KeyError, TypeError):
                     pass
+
+
+    def _zone_match(self, zone_pair, zone, match):
+        
+        result = False
+        action_map = {  'destination': zone_pair.endswith,
+                        'source': zone_pair.startswith}
+        return action_map[match](zone)
 
 
     def _neither_zone_is_restricted(self, zone_pair, restricted_zones):
