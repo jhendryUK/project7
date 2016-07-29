@@ -5,8 +5,11 @@ import sys
 import argparse
 import fw_utils
 
-def GenerateVBashConfig(config):
-    """Generate a .vbash script containing the zonepoicy"""
+def GenerateVBashConfig(config, args):
+    """Generate a .vbash script containing the firewall config"""
+
+    commit_action = 'commit\n' if args.commit else 'compare\n'
+    commit_action += 'save\n' if args.save else ''
 
     config = """#!/bin/vbash
 source /opt/vyatta/etc/functions/script-template
@@ -14,11 +17,11 @@ configure
 
 {0}
 
-# Replace compare with either commit or commit-confirm
-compare
+# Action to take
+{1}
 
 exit
-""".format(config)
+""".format(config, commit_action)
     
     return config
 
@@ -39,6 +42,8 @@ def main():
     parser = argparse.ArgumentParser(description='Generates a VyOS Zone Firewall',
                                     epilog="Example: {0} --host config/hosts/london/router1.yaml".format(sys.argv[0]))
     parser.add_argument('-b', '--brief', dest='brief', action='store_true', default=False, help='Print a the brief view of the firewall')
+    parser.add_argument('-c', '--commit', dest='commit', action='store_true', default=False, help='Changes the action of the .vbash script to commit')
+    parser.add_argument('-s', '--save', dest='save', action='store_true', default=False, help='Add a save option to the end of the .vbash script')
     parser.add_argument('--host', dest='host', required='true', help='Host to generate the firewall for')
     args = parser.parse_args()
 
@@ -48,7 +53,7 @@ def main():
     if args.brief:
         print fw_config
     else:
-        SaveFirewallConfig(GenerateVBashConfig(fw_config), args.host.replace('.yaml', '.vbash'))
+        SaveFirewallConfig(GenerateVBashConfig(fw_config, args), args.host.replace('.yaml', '.vbash'))
 
 if __name__ == '__main__':
     main()
