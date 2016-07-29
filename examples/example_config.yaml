@@ -106,7 +106,7 @@ NATRules:
     source:
         1:
             description: S-NAT Everything
-            inbound-outbound: any
+            outbound-interface: any
             protocol: tcp_udp
             translation: 1.2.3.4
             source:
@@ -118,7 +118,7 @@ NATRules:
     destination:
         100:
             description: D-NAT Everything
-            inbound-outbound: any
+            inbound-interface: any
             protocol: tcp_udp
             translation: 172.234.0.10
             source:
