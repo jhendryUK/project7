@@ -43,26 +43,17 @@ def main():
                                     epilog="Example: {0} --config examples/simple_example.yaml".format(sys.argv[0]))
     parser.add_argument('-b', '--brief', dest='brief', action='store_true', default=False, help='Print a brief view of the firewall')
     parser.add_argument('-c', '--commit', dest='commit', action='store_true', default=False, help='Change the action of the .vbash script to commit')
-    parser.add_argument('-g', '--generic', dest='generic', action='store', default='examples/simple_example.yaml', help='Path to the generic configuration file')
     parser.add_argument('-s', '--save', dest='save', action='store_true', default=False, help='Add a save option to the end of the .vbash script')
-    parser.add_argument('--config', dest='config', default=False, help='Config to generate a firewall from')
+    parser.add_argument('--config', dest='config', default='examples/simple_example.yaml', help='Config to generate a firewall from')
     args = parser.parse_args()
 
-    all_config_files = [args.generic]
-
-    if args.config:
-        fw_config_file = args.config
-        all_config_files.append(fw_config_file)
-    else:
-        fw_config_file = args.generic
-        
-    firewall = fw_utils.FirewallHost(all_config_files)
+    firewall = fw_utils.FirewallHost(args.config)
     fw_config = firewall.config(args.brief)
 
     if args.brief:
         print fw_config
     else:
-        SaveFirewallConfig(GenerateVBashConfig(fw_config, args), fw_config_file.replace('.yaml', '.vbash'))
+        SaveFirewallConfig(GenerateVBashConfig(fw_config, args), args.config.replace('.yaml', '.vbash'))
 
 if __name__ == '__main__':
     main()

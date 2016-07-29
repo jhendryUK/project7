@@ -236,7 +236,7 @@ class NATRules(RuleManager):
 
 class FirewallHost(object):
 
-    def __init__(self, config_files):
+    def __init__(self, config_file):
         """"""
 
         self._zones = []
@@ -247,15 +247,13 @@ class FirewallHost(object):
         self._rules = {}
         self._self_filter_outbound = None
 
-        all_configs = [self._load_config(config_files.pop())]
 
-        for config_file in config_files:
-            all_configs.append(self._load_config(custom_config_file))
+        all_configs = [self._load_config(config_file)]
 
         try:
             for config in all_configs:
                 for role_config_file in reversed(config['IncludeConfigs']):
-                    all_configs.insert(1, self._load_config(role_config_file))
+                    all_configs.insert(0, self._load_config(role_config_file))
         except (AttributeError, KeyError, TypeError):
             pass
 
