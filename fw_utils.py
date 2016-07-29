@@ -69,7 +69,7 @@ class GroupManager(object):
                     self.groups.append(name)
                     setattr(self, name, ips)
         
-            except (KeyError, AttributeError):
+            except (AttributeError, KeyError, TypeError):
                 pass
 
 
@@ -138,7 +138,7 @@ class RuleTemplates(RuleManager):
                     self.rules.append(name)
                     setattr(self, name, options)
 
-            except (KeyError, AttributeError):
+            except (AttributeError, KeyError, TypeError):
                 pass
 
 
@@ -236,7 +236,7 @@ class NATRules(RuleManager):
 
 class FirewallHost(object):
 
-    def __init__(self, host_config_file, generic_config_file='config/generic.yaml'):
+    def __init__(self, config_files):
         """"""
 
         self._zones = []
@@ -247,14 +247,17 @@ class FirewallHost(object):
         self._rules = {}
         self._self_filter_outbound = None
 
-        custom_config = self._load_config(host_config_file)
-        generic_config = self._load_config(generic_config_file)
-        all_configs = [generic_config, custom_config]
+        generic_config = self._load_config(config_files.pop())
+        all_configs = [generic_config]
+
+        for config_file in config_files:
+            all_configs.append(self._load_config(custom_config_file))
 
         try:
-            role_config = self._load_config(custom_config['role'])
-            all_configs.insert(1, role_config)
-        except (KeyError, AttributeError):
+            for config in all_configs:
+                for role_config_file in reversed(config['IncludeConfigs']):
+                    all_configs.insert(1, self._load_config(role_config_file))
+        except (AttributeError, KeyError, TypeError):
             pass
 
         self._yaml_address_groups = GroupManager('address', all_configs)
@@ -275,8 +278,11 @@ class FirewallHost(object):
         try:
             return yaml.safe_load(open(config_file))
         except IOError, e:
-            if e.errno == 2:
-                raise ErrorConfigFileDoesNotExist(config_file)
+            try:
+                if e.errno == 2:
+                    raise ErrorConfigFileDoesNotExist(config_file)
+            except Exception:
+                raise
 
 
     def _prepare_zones(self, configs):
@@ -285,8 +291,7 @@ class FirewallHost(object):
         for config in configs:
             try:
                 for zone in config['Zones']:
-                    self._zones.append(zone)
-                    self._zone_interfaces[zone] = []
+                    self._add_zone(zone)
             
             except (AttributeError, KeyError, TypeError):
                 pass
@@ -294,12 +299,19 @@ class FirewallHost(object):
         if not self._zones:
             raise ErrorHostHasNoZonesDefined()
 
+        self._add_zone('Self')
         self._prepare_zone_policy(configs)
 
         for src, dst in itertools.permutations(self._zones, 2):
             if self._filter_outbound(src):
                 zone = "{0}-To-{1}".format(src, dst)
                 self._rules[zone] = []
+
+
+    def _add_zone(self, zone):
+        if not zone in self._zones:
+            self._zones.append(zone)
+            self._zone_interfaces[zone] = []
 
 
     def _prepare_zone_policy(self, configs):
@@ -343,7 +355,10 @@ class FirewallHost(object):
         """Read rules from YAML file and adds them to the firewall"""
 
         for config in configs:
-            restricted_zones = config.get('RestrictedZones', [])
+            try:
+                restricted_zones = config.get('RestrictedZones', [])
+            except (AttributeError, KeyError, TypeError):
+                pass
 
             try:
                 for rule_name in config['FirewallRules']['ALL_ZONES']:

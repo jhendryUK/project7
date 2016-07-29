@@ -3,17 +3,24 @@
 ### All directives can be overridden in either the per-host or template configuration files
 ###
 ### Available Directives:
+###     IncludeConfigs: Path to other config files to include, their settings override the Generic config
 ###     Zones: Zones to be defined
+###     RestrictedZones: These zones will not inherit rules added to the UNRESTRICTED_ZONES list
+###     ZonePolicy:
+###         FilterSelfOutbound: Should 'Self' (IE. The router itself) be filtered on outbound traffic
+###         Interfaces: Mapping of interfaces to zones
 ###     AddressGroups: Define address groups which can be used in firewall rules or NAT's
 ###     NetworkGroups: Define network groups which can be used in firewall rules or NAT's
 ###     PortGroups: Define port groups which can be used in firewall rules or NAT's
 ###     RuleTemplates: Defines rules which can be used in firewall zones
 ###     FirewallRules: Add rules to zones
+###         ALL_ZONES: These rules get added to all zones, including restricted zones
+###         UNRESTRICTED_ZONES: These rules get added to all zones except those in the RestrictedZones list
+###         {ZonePair}: Add rules to a specific zone pair. Eg.  Servers-To-External
 ###     NATRules: Defines NAT rules
 ###
-### Notes:
-###     Any option available on the VyOS CLI can be defined
-###
+
+IncludeConfigs:
 
 Zones:
     - Self
