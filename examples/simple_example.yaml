@@ -159,7 +159,7 @@ FirewallRules:
         - ALLOW_ICMP_ECHO_REQUEST
         - ALLOW_ICMP_TIME_EXCEEDED
         - DROP_ICMP
-        
+
     UNRESTRICTED_ZONES:
         - ALLOW_RFC1918_SSH
 

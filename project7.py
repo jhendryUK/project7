@@ -40,9 +40,9 @@ def SaveFirewallConfig(fw_config, fw_file):
 def main():
 
     parser = argparse.ArgumentParser(description='Generates a VyOS Zone Firewall',
-                                    epilog="Example: {0} --host config/hosts/london/router1.yaml".format(sys.argv[0]))
-    parser.add_argument('-b', '--brief', dest='brief', action='store_true', default=False, help='Print a the brief view of the firewall')
-    parser.add_argument('-c', '--commit', dest='commit', action='store_true', default=False, help='Changes the action of the .vbash script to commit')
+                                    epilog="Example: {0} --config examples/simple_example.yaml".format(sys.argv[0]))
+    parser.add_argument('-b', '--brief', dest='brief', action='store_true', default=False, help='Print a brief view of the firewall')
+    parser.add_argument('-c', '--commit', dest='commit', action='store_true', default=False, help='Change the action of the .vbash script to commit')
     parser.add_argument('-g', '--generic', dest='generic', action='store', default='examples/simple_example.yaml', help='Path to the generic configuration file')
     parser.add_argument('-s', '--save', dest='save', action='store_true', default=False, help='Add a save option to the end of the .vbash script')
     parser.add_argument('--config', dest='config', default=False, help='Config to generate a firewall from')

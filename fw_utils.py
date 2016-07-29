@@ -247,8 +247,7 @@ class FirewallHost(object):
         self._rules = {}
         self._self_filter_outbound = None
 
-        generic_config = self._load_config(config_files.pop())
-        all_configs = [generic_config]
+        all_configs = [self._load_config(config_files.pop())]
 
         for config_file in config_files:
             all_configs.append(self._load_config(custom_config_file))
@@ -317,26 +316,24 @@ class FirewallHost(object):
     def _prepare_zone_policy(self, configs):
 
         filter_outbound = None
-        try:
-            for config in configs:
-                if filter_outbound is None:
-                    filter_outbound = config['ZonePolicy']['FilterSelfOutbound']
+        for config in configs:
+            try:
+                filter_outbound = config['ZonePolicy']['FilterSelfOutbound']
+            except (AttributeError, KeyError, TypeError):
+                pass
 
-                for zone in self._zones:
-                    try:
-                        for interface in config['ZonePolicy']['Interfaces'][zone]:
-                            if not interface in self._zone_interfaces[zone]:
-                                self._zone_interfaces[zone].append(interface)
-                    except (AttributeError, KeyError, TypeError):
-                        pass
-
-        except (AttributeError, KeyError, TypeError):
-            pass
+            for zone in self._zones:
+                try:
+                    for interface in config['ZonePolicy']['Interfaces'][zone]:
+                        if not interface in self._zone_interfaces[zone]:
+                            self._zone_interfaces[zone].append(interface)
+                except (AttributeError, KeyError, TypeError):
+                    pass
 
         if filter_outbound is None:
             raise ErrorNotDefinedSelfOutboundPolicy()
-        else:
-            self._self_filter_outbound = filter_outbound
+
+        self._self_filter_outbound = filter_outbound
 
         for zone in self._zones:
             if zone != 'Self':
