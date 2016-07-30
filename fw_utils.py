@@ -263,7 +263,7 @@ class FirewallHost(object):
         self._yaml_nat_rules = NATRules(all_configs)
 
         self._prepare_zones(all_configs)
-        self._add_yaml_firewall_rules(all_configs)
+        self._find_yaml_firewall_rules(all_configs)
 
 
     def __iter__(self):
@@ -345,59 +345,69 @@ class FirewallHost(object):
         return result
     
 
-    def _add_yaml_firewall_rules(self, configs):
+    def _find_yaml_firewall_rules(self, configs):
         """Read rules from YAML file and adds them to the firewall"""
 
         for config in configs:
-            # Get restricted zones
             try:
-                restricted_zones = config.get('RestrictedZones', [])
+                unsafe_zones = config.get('UnsafeZones', [])
             except (AttributeError, KeyError, TypeError):
                 pass
 
-            # Add rules defined for all zones
-            for zone in self:
-                try:
-                    for rule_name in config['FirewallRules']['ALL_ZONES']:
-                        self.add_rule(zone, rule_name)
-                except (AttributeError, KeyError, TypeError):
-                    pass
-
-            # Add rules for all unrestricted zones
-            for zone in self:
-                if self._neither_zone_is_restricted(zone, restricted_zones):
-                    try:
-                        for rule_name in config['FirewallRules']['UNRESTRICTED_ZONES']:
-                            self.add_rule(zone, rule_name)
-                    except (AttributeError, KeyError, TypeError):
-                        pass
-
-            # Add rules for all zones where the destination zone is X
             for zone_pair in self:
-                try:
-                    for zone, rules in config['FirewallRules']['DESTINATION_ZONE'].iteritems():
-                        for rule in rules:
-                            if self._zone_match(zone_pair, zone, 'destination'):
-                                self.add_rule(zone_pair, rule)
-                except (AttributeError, KeyError, TypeError):
-                    pass
+                # Check for rules from zones classes and zone pairs
+                for zone_type in self._zone_types():
+                    if self._process_zone(zone_type, zone_pair, unsafe_zones):
+                        try:
+                            for rule_name in config['FirewallRules'][zone_type]:
+                                self.add_rule(zone_pair, rule_name)
+                        except (AttributeError, KeyError, TypeError):
+                            pass
 
-            # Add rules for all zones where the source zone is X
-            for zone_pair in self:
-                try:
-                    for zone, rules in config['FirewallRules']['SOURCE_ZONE'].iteritems():
-                        for rule in rules:
-                            if self._zone_match(zone_pair, zone, 'source'):
-                                self.add_rule(zone_pair, rule)
-                except (AttributeError, KeyError, TypeError):
-                    pass
 
-            for zone in self:
-                try:
-                    for rule_name in config['FirewallRules'][zone]:
-                        self.add_rule(zone, rule_name)
-                except (AttributeError, KeyError, TypeError):
-                    pass
+    def _zone_types(self):
+        
+        rule_types = ['ALL_ZONES', 'SAFE_ZONES', 'UNSAFE_ZONES']
+        rule_types += self._rules.keys()
+
+        for zone in self._zones:
+            rule_types.append(zone)
+            rule_types.append("TO_{0}".format(zone))
+            rule_types.append("FROM_{0}".format(zone))
+
+        return rule_types
+
+
+    def _process_zone(self, zone_type, zone_pair, unsafe_zones):
+
+        result = False
+        neither_zone_restricted = self._neither_zone_is_restricted(zone_pair, unsafe_zones)
+
+        if zone_type == 'ALL_ZONES':
+            result = True
+
+        elif zone_type == 'SAFE_ZONES':
+            result = neither_zone_restricted
+
+        elif zone_type == 'UNSAFE_ZONES':
+            result = not neither_zone_restricted
+
+        elif zone_type.startswith('TO_'):
+            if neither_zone_restricted:
+                result = self._zone_match(zone_pair, zone_type[3:], 'destination')
+
+        elif zone_type.startswith('FROM_'):
+            if neither_zone_restricted:
+                result = self._zone_match(zone_pair, zone_type[5:], 'source')
+
+        elif zone_type in self._zones:
+            if neither_zone_restricted:
+                result = True if zone_type in zone_pair else False
+            
+        else:
+            result = True if zone_pair == zone_type else False
+
+        return result
 
 
     def _zone_match(self, zone_pair, zone, match):
@@ -408,12 +418,12 @@ class FirewallHost(object):
         return action_map[match](zone)
 
 
-    def _neither_zone_is_restricted(self, zone_pair, restricted_zones):
+    def _neither_zone_is_restricted(self, zone_pair, unsafe_zones):
         """Checks both zones in a zone-pair returns True if neither are restricted"""
 
         result = True
         for zone in zone_pair.split('-To-'):
-            if zone in restricted_zones:
+            if zone in unsafe_zones:
                 result = False
 
         return result
