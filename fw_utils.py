@@ -251,7 +251,7 @@ class FirewallHost(object):
         all_configs = [self._load_config(config_file)]
 
         try:
-            for role_config_file in reversed(all_configs[0]['IncludeConfigs']):
+            for role_config_file in all_configs[0]['IncludeConfigs']:
                 all_configs.insert(0, self._load_config(role_config_file))
         except (AttributeError, KeyError, TypeError):
             pass
@@ -348,12 +348,15 @@ class FirewallHost(object):
     def _find_yaml_firewall_rules(self, configs):
         """Read rules from YAML file and adds them to the firewall"""
 
+        unsafe_zones = []
         for config in configs:
             try:
-                unsafe_zones = config.get('UnsafeZones', [])
+                if config.get('UnsafeZones', []):
+                    unsafe_zones += config.get('UnsafeZones', [])
             except (AttributeError, KeyError, TypeError):
                 pass
 
+        for config in configs:
             for zone_pair in self:
                 # Check for rules from zones classes and zone pairs
                 for zone_type in self._zone_types():
@@ -392,30 +395,13 @@ class FirewallHost(object):
         elif zone_type == 'UNSAFE_ZONES':
             result = not neither_zone_restricted
 
-        elif zone_type.startswith('TO_'):
-            if neither_zone_restricted:
-                result = self._zone_match(zone_pair, zone_type[3:], 'destination')
+        elif zone_type.startswith('TO_') or zone_type.startswith('FROM_') or zone_type in self._zones:
+            result = self._dynamic_class_match(zone_pair, zone_type, unsafe_zones)
 
-        elif zone_type.startswith('FROM_'):
-            if neither_zone_restricted:
-                result = self._zone_match(zone_pair, zone_type[5:], 'source')
-
-        elif zone_type in self._zones:
-            if neither_zone_restricted:
-                result = True if zone_type in zone_pair else False
-            
         else:
             result = True if zone_pair == zone_type else False
 
         return result
-
-
-    def _zone_match(self, zone_pair, zone, match):
-        
-        result = False
-        action_map = {  'destination': zone_pair.endswith,
-                        'source': zone_pair.startswith}
-        return action_map[match](zone)
 
 
     def _neither_zone_is_restricted(self, zone_pair, unsafe_zones):
@@ -427,6 +413,42 @@ class FirewallHost(object):
                 result = False
 
         return result
+
+
+    def _dynamic_class_match(self, zone_pair, zone_type, unsafe_zones):
+        
+        zone = ''
+        direction = ''
+        result = False
+        dynamic_unsafe_zones = list(unsafe_zones)
+
+        if zone_type.startswith('TO_'):
+            zone = zone_type[3:]
+            direction = 'destination'
+        elif zone_type.startswith('FROM_'):
+            zone = zone_type[5:]
+            direction = 'source'
+        else:
+            zone = zone_type
+
+        if zone in unsafe_zones:
+            dynamic_unsafe_zones.remove(zone)
+        
+        if self._neither_zone_is_restricted(zone_pair, dynamic_unsafe_zones):
+            if direction:
+                result = self._zone_match(zone_pair, zone, direction)
+            else:
+                result = True if zone_type in zone_pair else False
+
+        return result
+
+
+    def _zone_match(self, zone_pair, zone, match):
+        
+        result = False
+        action_map = {  'destination': zone_pair.endswith,
+                        'source': zone_pair.startswith}
+        return action_map[match](zone)
 
 
     def _define_groups(self):
