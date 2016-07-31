@@ -1,0 +1,114 @@
+###
+### See config.yaml for further details on directives
+###
+
+Zones:
+    - External
+    - Servers
+    - DMZ
+
+UnsafeZones:
+    - External
+    - Self
+
+ZonePolicy:
+    FilterSelfOutbound: False
+    Interfaces:
+        External:
+            - eth0
+        Servers:
+            - eth1
+        DMZ:
+            - eth2
+
+AddressGroups:
+    TRUSTED_HOST:
+        - 8.8.8.8
+
+NetworkGroups:
+    RFC1918:
+        - 10.0.0.0/8
+        - 172.16.0.0/12
+        - 192.168.0.0/16
+
+PortGroups:
+    SSH:
+        - 22
+
+RuleTemplates:
+    BLOCK_RFC1918:
+        number: 15
+        description: Block RFC1918
+        action: drop
+        source:
+            - group network-group RFC1918
+    
+    ALLOW_ESTABLISHED:
+        number: 20
+        description: Allow established traffic
+        action: accept
+        protocol: all
+        state: established enable
+    
+    ALLOW_RELATED:
+        number: 25
+        description: Allow related traffic
+        action: accept
+        protocol: all
+        state: related enable
+    
+    DROP_INVALID_STATE:
+        number: 35
+        description: Drop invalid state
+        disable: ''
+        action: drop
+        protocol: all
+        state: invalid enable
+
+    ALLOW_ICMP:
+        number: 45
+        description: Allow ICMP
+        action: accept
+        protocol: icmp
+
+    ALLOW_TRUSTED_HOST:
+        number: 50
+        description: Allow trusted host
+        action: accept
+        source:
+            - group address-group TRUSTED_HOST
+        destination:
+            - address 192.168.0.0/16
+    
+    ALLOW_RFC1918_SSH:
+        number: 64
+        action: accept
+        protocol: tcp
+        description: Allow SSH from RFC1918
+        source:
+            - group network-group RFC1918
+        destination:
+            - group network-group RFC1918
+            - group port-group SSH
+
+
+FirewallRules:
+    ALL_ZONES:
+        - ALLOW_ESTABLISHED
+        - ALLOW_RELATED
+
+    SAFE_ZONES:
+        - ALLOW_ICMP
+
+    UNSAFE_ZONES:
+        - BLOCK_RFC1918
+
+    FROM_Management:
+        - ALLOW_RFC1918_SSH
+
+    TO_Servers:
+        - DROP_INVALID_STATE
+
+    FROM_DMZ:
+        - ALLOW_TRUSTED_HOST
+
