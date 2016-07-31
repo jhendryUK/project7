@@ -1,4 +1,6 @@
 ###
+### DISCLAIMER: This is not inteded to be a firewal template, it is only to demonstrate the layout and usage of configuration directives
+###
 ### See config.yaml for further details on directives
 ###
 
@@ -6,10 +8,12 @@ Zones:
     - External
     - Servers
     - DMZ
+    - Workstations
 
 UnsafeZones:
     - External
     - Self
+    - DMZ
 
 ZonePolicy:
     FilterSelfOutbound: False
@@ -20,10 +24,12 @@ ZonePolicy:
             - eth1
         DMZ:
             - eth2
+        Workstations:
+            - eth3
 
 AddressGroups:
     TRUSTED_HOST:
-        - 8.8.8.8
+        - 192.168.0.10
 
 NetworkGroups:
     RFC1918:
@@ -65,10 +71,19 @@ RuleTemplates:
         protocol: all
         state: invalid enable
 
-    ALLOW_ICMP:
+    ALLOW_RFC1918:
         number: 45
-        description: Allow ICMP
+        description: Allow RFC1918
         action: accept
+        source:
+            - group network-group RFC1918
+        destination:
+            - group network-group RFC1918
+
+    DROP_ICMP:
+        number: 46
+        description: Drop ICMP
+        action: drop
         protocol: icmp
 
     ALLOW_TRUSTED_HOST:
@@ -81,34 +96,85 @@ RuleTemplates:
             - address 192.168.0.0/16
     
     ALLOW_RFC1918_SSH:
-        number: 64
+        number: 55
+        description: Allow SSH from RFC1918
         action: accept
         protocol: tcp
-        description: Allow SSH from RFC1918
         source:
             - group network-group RFC1918
         destination:
             - group network-group RFC1918
             - group port-group SSH
 
+    ALLOW_INTERNET:
+        number: 100
+        description: Allow internet access
+        action: accept
+        source:
+            - address 192.168.0.0/16
+        destination:
+            - address 0.0.0.0/0
+
+    ALLOW_INBOUND_HTTP:
+        number: 200
+        description: Allow Inbound HTTP
+        action: accept
+        source:
+            - address 0.0.0.0/0
+        destination:
+            - address 192.168.0.200
+
 
 FirewallRules:
     ALL_ZONES:
         - ALLOW_ESTABLISHED
         - ALLOW_RELATED
+        - DROP_INVALID_STATE
 
     SAFE_ZONES:
-        - ALLOW_ICMP
+        - ALLOW_RFC1918
 
     UNSAFE_ZONES:
+        - DROP_ICMP
+
+    FROM_External:
         - BLOCK_RFC1918
 
-    FROM_Management:
+    TO_DMZ:
         - ALLOW_RFC1918_SSH
-
-    TO_Servers:
-        - DROP_INVALID_STATE
 
     FROM_DMZ:
         - ALLOW_TRUSTED_HOST
+
+    Workstations-To-External:
+        - ALLOW_INTERNET
+
+    Servers-To-External:
+        - ALLOW_INTERNET
+
+    External-To-DMZ:
+        - ALLOW_INBOUND_HTTP
+
+NATRules:
+    source:
+        10:
+            description: NAT Everything
+            outbound-interface: eth0
+            translation: address 23.45.67.89
+            destination:
+                - address 0.0.0.0/0
+            source:
+                - address 192.168.0.0/16
+
+    destination:
+        10:
+            description: Inbound HTTP
+            inbound-interface: any
+            protocol: tcp
+            translation: address 192.168.0.200
+            destination:
+                - address 23.45.67.89
+                - port 80
+            source:
+                - address 0.0.0.0/0
 
