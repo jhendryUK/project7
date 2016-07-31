@@ -40,7 +40,7 @@ def SaveFirewallConfig(fw_config, fw_file):
 def main():
 
     parser = argparse.ArgumentParser(description='Generates a VyOS Zone Firewall',
-                                    epilog="Example: {0} --config examples/simple_example.yaml".format(sys.argv[0]))
+                                    epilog="Example: {0} --config examples/simple_firewall.yaml".format(sys.argv[0]))
     parser.add_argument('-b', '--brief', dest='brief', action='store_true', default=False, help='Print a brief view of the firewall')
     parser.add_argument('-c', '--commit', dest='commit', action='store_true', default=False, help='Change the action of the .vbash script to commit')
     parser.add_argument('-s', '--save', dest='save', action='store_true', default=False, help='Add a save option to the end of the .vbash script')
