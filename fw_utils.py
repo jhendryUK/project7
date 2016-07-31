@@ -1,5 +1,9 @@
 #!/usr/bin/env python
 
+"""
+Exposes classes used to generate a VyOS Zone Firewall and NAT rules
+"""
+
 import yaml
 import itertools
 from collections import OrderedDict
@@ -32,8 +36,17 @@ class ErrorZoneHasNoInterfaces(Exception):
     pass
 
 class GroupManager(object):
+    """
+    Holds the groups for a group type and can print the brief view or full config
+    
+    Valid group types are:
+        address
+        network
+        port
+    """
 
     def __init__(self, group_type, configs):
+        """Validate group type and load all groups from it"""
         
         if not group_type in ['address', 'network', 'port']:
             raise ErrorUnknownGroupType(group_type)
@@ -44,10 +57,12 @@ class GroupManager(object):
     
 
     def __iter__(self):
+        """Return an iter() of all group names"""
         return iter(self.groups)
 
 
     def __str__(self):
+        """Return a str() of the brief view of all groups"""
         
         config = ''
         for group in self:
@@ -57,6 +72,7 @@ class GroupManager(object):
 
 
     def _load_groups(self, configs):
+        """Load all groups for a group type"""
 
         type_map = {'address': 'AddressGroups',
                     'network': 'NetworkGroups',
@@ -74,7 +90,7 @@ class GroupManager(object):
 
 
     def config(self, group_name, brief=False):
-        """Generate a full or brief configuration for a group"""
+        """Return a str() with either a brief view or full config for a group"""
 
         type_map = {'address': 'address-group',
                     'network': 'network-group',
@@ -103,8 +119,10 @@ class GroupManager(object):
 
 
 class RuleManager(object):
+    """Shared functions for managing Firewall and NAT rules"""
     
     def __iter__(self):
+        """Return an iter() of all rule names"""
         return iter(self.rules)
 
 
@@ -124,6 +142,7 @@ class RuleManager(object):
 
 
 class RuleTemplates(RuleManager):
+    """Holds all rule templates and can print a breif view or full config"""
 
     def __init__(self, configs):
         """Load all rule templates"""
@@ -143,10 +162,13 @@ class RuleTemplates(RuleManager):
 
 
     def __str__(self):
+        """Return a str() of all rule template names"""
         return "\n".join(self.rules)
 
     
     def _look_for_redefined_rules(self, name, options):
+        """Raises an exception if a rule template name or rule number is being redefined"""
+
         if name in self.rules:
             raise ErrorRedefiningRuleTemplate("You have redefined rule {0}. This is dangerous and not allowed".format(name))
 
@@ -158,7 +180,7 @@ class RuleTemplates(RuleManager):
     
 
     def config(self, zone, fw_rules, brief=False):
-        """Generate rule config for a zone"""
+        """Returns a str() of either a brief view or full config for a rule template in a zone-pair"""
 
         config = ''
 
@@ -186,9 +208,10 @@ class RuleTemplates(RuleManager):
             
 
 class NATRules(RuleManager):
-    """Stores all NAT rules to be created"""
+    """Holds all NAT rules and can print a breif view or full config"""
 
     def __init__(self, all_configs):
+        """Load all NAT rules"""
 
         super(RuleManager, self).__init__()        
         self.rules = { 'source': {}, 'destination': {} }
@@ -204,6 +227,7 @@ class NATRules(RuleManager):
                     pass
 
     def __str__(self):
+        """Returns a str() of all NAT rules and their description"""
         
         config = ''
         for nat_type in self.rules:
@@ -217,7 +241,7 @@ class NATRules(RuleManager):
 
 
     def config(self, rule_type, rule_number, brief=False):
-        """Generate configuration for all NAT rules"""
+        """Returns a str() of either a brief view or full config for a NAT rule"""
 
         config = ''
         if brief:
@@ -235,9 +259,10 @@ class NATRules(RuleManager):
 
 
 class FirewallHost(object):
+    """Holds all information needed to generate a firewall config"""
 
     def __init__(self, config_file):
-        """"""
+        """Load all information for the firewall"""
 
         self._zones = []
         self._zone_interfaces = {}
@@ -246,7 +271,6 @@ class FirewallHost(object):
         self._port_groups = []
         self._rules = {}
         self._self_filter_outbound = None
-
 
         all_configs = [self._load_config(config_file)]
 
@@ -267,10 +291,13 @@ class FirewallHost(object):
 
 
     def __iter__(self):
+        """Returns an iter() of all zone-pairs"""
         return iter(self._rules)
 
 
     def _load_config(self, config_file):
+        """Returns a dict() created from a YAML config file"""
+
         try:
             return yaml.safe_load(open(config_file))
         except IOError, e:
@@ -282,7 +309,7 @@ class FirewallHost(object):
 
 
     def _prepare_zones(self, configs):
-        """Define zones for this firewall"""
+        """Load zones, verifies they have an interface assigned and generate zone-pairs"""
 
         for config in configs:
             try:
@@ -295,8 +322,8 @@ class FirewallHost(object):
         if not self._zones:
             raise ErrorHostHasNoZonesDefined()
 
-        self._add_zone('Self')
         self._prepare_zone_policy(configs)
+        self._add_zone('Self')
 
         for src, dst in itertools.permutations(self._zones, 2):
             if self._filter_outbound(src):
@@ -305,12 +332,15 @@ class FirewallHost(object):
 
 
     def _add_zone(self, zone):
+        """Add a zone to this firewall preventing duplicate inserts"""
+
         if not zone in self._zones:
             self._zones.append(zone)
             self._zone_interfaces[zone] = []
 
 
     def _prepare_zone_policy(self, configs):
+        """Validate required zone policy information is available and assoicate zones with interfaces"""
 
         filter_outbound = None
         for config in configs:
@@ -319,6 +349,12 @@ class FirewallHost(object):
             except (AttributeError, KeyError, TypeError):
                 pass
 
+        if filter_outbound is None:
+            raise ErrorNotDefinedSelfOutboundPolicy()
+        else:
+            self._self_filter_outbound = filter_outbound
+
+        for config in configs:
             for zone in self._zones:
                 try:
                     for interface in config['ZonePolicy']['Interfaces'][zone]:
@@ -327,32 +363,18 @@ class FirewallHost(object):
                 except (AttributeError, KeyError, TypeError):
                     pass
 
-        if filter_outbound is None:
-            raise ErrorNotDefinedSelfOutboundPolicy()
-
-        self._self_filter_outbound = filter_outbound
-
         for zone in self._zones:
-            if zone != 'Self':
-                if not self._zone_interfaces[zone]:
-                    raise ErrorZoneHasNoInterfaces(zone)
+            if not self._zone_interfaces[zone]:
+                raise ErrorZoneHasNoInterfaces(zone)
 
-    def _filter_outbound(self, zone):
-        
-        result = True
-        if zone == 'Self' and not self._self_filter_outbound:
-            result = False
-        return result
-    
 
     def _find_yaml_firewall_rules(self, configs):
-        """Read rules from YAML file and adds them to the firewall"""
+        """Find all firewall rules and associate them with zone-pairs"""
 
         unsafe_zones = []
         for config in configs:
             try:
-                if config.get('UnsafeZones', []):
-                    unsafe_zones += config.get('UnsafeZones', [])
+                unsafe_zones += config.get('UnsafeZones', [])
             except (AttributeError, KeyError, TypeError):
                 pass
 
@@ -369,6 +391,11 @@ class FirewallHost(object):
 
 
     def _zone_types(self):
+        """
+        Returns a list() of all zone-types built from the key names of the FirewallRules: tree from the YAML configs
+        
+        Additionally generates and adds dynamic zone-types to the list
+        """
         
         rule_types = ['ALL_ZONES', 'SAFE_ZONES', 'UNSAFE_ZONES']
         rule_types += self._rules.keys()
@@ -382,6 +409,7 @@ class FirewallHost(object):
 
 
     def _process_zone(self, zone_type, zone_pair, unsafe_zones):
+        """Returns a bool() indicating if the rules from a zon-etype should be added to a zone-pair"""
 
         result = False
         neither_zone_restricted = self._neither_zone_is_restricted(zone_pair, unsafe_zones)
@@ -405,7 +433,7 @@ class FirewallHost(object):
 
 
     def _neither_zone_is_restricted(self, zone_pair, unsafe_zones):
-        """Checks both zones in a zone-pair returns True if neither are restricted"""
+        """Returns a bool() indicating if neither zone in a zone pair is in the UnsafeZones list"""
 
         result = True
         for zone in zone_pair.split('-To-'):
@@ -416,6 +444,7 @@ class FirewallHost(object):
 
 
     def _dynamic_class_match(self, zone_pair, zone_type, unsafe_zones):
+        """Returns a bool() indicating if rules from a dynamic zone-type should be added to a zone-pair"""
         
         zone = ''
         direction = ''
@@ -444,6 +473,7 @@ class FirewallHost(object):
 
 
     def _zone_match(self, zone_pair, zone, match):
+        """Returns a bool() indicating if a zone is part of a zone-pair"""
         
         result = False
         action_map = {  'destination': zone_pair.endswith,
@@ -451,8 +481,38 @@ class FirewallHost(object):
         return action_map[match](zone)
 
 
+    def add_rule(self, zone, rule):
+        """Add a rule to this firewall"""
+
+        try:
+            if not rule in self._rules[zone]:
+                self._rules[zone].append(rule)
+        
+        except KeyError:
+            raise ErrorZoneNotDefined(zone)
+
+
+    def config(self, brief=False):
+        """Returns a str() of either the bref view or full config of the entire firewall"""
+
+        self._define_groups()
+        config = self._generic_settings(brief)
+        config += self._generate_group_config('address', brief)
+        config += self._generate_group_config('network', brief)
+        config += self._generate_group_config('port', brief)
+        config += self._generate_firewall_config(brief)
+        config += self._zone_policy(brief)
+        config += self._generate_nat_rules(brief)
+        
+        return config
+
+
     def _define_groups(self):
-        """Dynamically define all required groups for this firewall"""
+        """
+        Dynamically find all Address/Network/Port groups used by this firewall
+        
+        Loop through all FirewallRules: and fine where either 'source' or 'destination' options are used, if found pass them on for further processing
+        """
 
         for zone in self._rules:
             for rule_name in self._rules[zone]:
@@ -475,7 +535,7 @@ class FirewallHost(object):
 
 
     def _find_group_in_rule(self, option):
-        """If our rule contains a group add it to the groups list"""
+        """Look for groups used in source or destionation options, find any groups and add them to the required list"""
 
         try:
             option_tree, group_type, group_name = option.split(' ')
@@ -492,32 +552,12 @@ class FirewallHost(object):
             pass
 
 
-    def add_rule(self, zone, rule):
-        """Add a rule to this firewall"""
-        try:
-            if not rule in self._rules[zone]:
-                self._rules[zone].append(rule)
-        
-        except KeyError:
-            raise ErrorZoneNotDefined(zone)
-
-
-    def config(self, brief=False):
-
-        self._define_groups()
-        config = self._generic_settings(brief)
-        config += self._generate_group_config('address', brief)
-        config += self._generate_group_config('network', brief)
-        config += self._generate_group_config('port', brief)
-        config += self._generate_firewall_config(brief)
-        config += self._zone_policy(brief)
-        config += self._generate_nat_rules(brief)
-        
-        return config
-
-
     def _generic_settings(self, brief):
-        """Generate default options"""
+        """
+        Returns a str() of either a brief view or full config of generic firewall options
+        
+        TODO: Define these rules in the YAML config instead of hard-coding them here
+        """
 
         config = generate_large_msg('Generic Firewall Settings')
         firewall_options = {'all-ping': 'enable',
@@ -547,7 +587,7 @@ class FirewallHost(object):
 
 
     def _generate_group_config(self, group_type, brief=False):
-        """Generate VyOS configuration for a group type"""
+        """Returns a str() of either the brief view or full config for a group type"""
 
         config_map = {  'names':    {'address': self._address_groups,
                                      'network': self._network_groups,
@@ -571,7 +611,7 @@ class FirewallHost(object):
         return config
 
     def _generate_firewall_config(self, brief=False):
-        """Generate VyOS Firewall Rules"""
+        """Returns a str() of either a brief view or full config for firewall rules"""
 
         config = generate_large_msg('Firewall Rules')
 
@@ -589,7 +629,7 @@ class FirewallHost(object):
 
 
     def _generate_nat_rules(self, brief=False):
-        """Generate NAT rules"""
+        """Returns a str() of either a brief view or full config for NAT rules"""
 
         config = generate_large_msg('NAT Rules')
 
@@ -607,7 +647,7 @@ class FirewallHost(object):
 
 
     def _zone_policy(self, brief=False):
-        """Print the zone policy for this host"""
+        """Returns a str() of either a breief view or full config of the ZonePolicy"""
 
         config = generate_large_msg('Zone Policies')
 
@@ -643,6 +683,15 @@ class FirewallHost(object):
 
         return config
 
+
+    def _filter_outbound(self, zone):
+        """Returns a bool() indicating if a zone requires outbound filtering"""
+        
+        result = True
+        if zone == 'Self' and not self._self_filter_outbound:
+            result = False
+        return result
+    
 
 def generate_large_msg(msg):
     return """
