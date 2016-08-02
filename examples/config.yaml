@@ -1,31 +1,31 @@
 ###
 ### Available Directives:
-###     IncludeConfigs: Path to another config files to include
+###     IncludeConfigs: Path to other config files to include
 ###                     Config files at the top of this list override settings in those below it
 ###     Zones: Zones to be defined, these can also be used in FirewallRules (see below)
-###     UnsafeZones: These zones will be excluded from certain zone-type comparsion, see below for details
+###     UnsafeZones: These zones will be excluded from most dynamic zone-type comparsions, see below for details
 ###     ZonePolicy:
-###         FilterSelfOutbound: Should 'Self' (IE. The router itself) be filtered on outbound traffic
+###         FilterSelfOutbound: Should 'Self' (IE. The router itself) be filtered on outbound traffic  [REQUIRED]
 ###         Interfaces: Mapping of interfaces to zones
 ###             {Zone}: Zone name to add an interface to
 ###                 - ethX: Adding an interface to a zone
 ###     AddressGroups: Define address groups which can be used in firewall rules or NAT's
-###         * See AddressGroup documentation for further details
+###         * See Groups documentation for further details
 ###     NetworkGroups: Define network groups which can be used in firewall rules or NAT's
-###         * See NetworkGroup documentation for further details
+###         * See Groups documentation for further details
 ###     PortGroups: Define port groups which can be used in firewall rules or NAT's
-###         * See PortGroup documentation for further details
+###         * See Groups documentation for further details
 ###     RuleTemplates: Defines rules which can be used in firewall zones
 ###         * See RuleTemplates documentation for further details
 ###     FirewallRules: Add rules to zones
 ###         ALL_ZONES: Add rules to all zone-pairs
-###         SAFE_ZONES: Add rule to zones-pairs where neither zone is in the UnsafeZone list
-###         UNSAFE_ZONES: Add rules to zone-pairs originating or destined from a zone in the UnsafeZone list
-###         {Zone}: Add rules to zone-pairs where {Zone} is either the source or detination zone
-###         TO_{Zone}: Add rules to zone-pairs where the destinate zone is {Zone} (excluding zone-pairs where the Source zone is in the UnsafeZone list)
-###         FROM_{Zone}: Add rules to zone-pairs where the source zone is {Zone} (excluding zone-pairs where the destination zone is in the UnsafeZone list)
-###         {ZonePair}: Add rules to a specific zone-pair (Eg. Servers-To-External)
+###         SAFE_ZONES: Add rule to zones-pairs where neither zone is in an UnsafeZone
+###         UNSAFE_ZONES: Add rules if one of the zones in the zone-pair is not an UnsafeZone. Effectively UNSAFE_ZONES-To-SAFE_ZONES and SAFE_ZONES-To-UNSAFE_ZONES
+###         {Zone}: Add rules if one of the zones in the zone-pair is not an UnsafeZone. Effectively {Zone}-To-SAFE_ZONES and SAFE_ZONES-To-{Zone}
+###         {Zone}-To-{Zone}: Add rules if the zone-pair exactly matches
+###         TO_{Zone}: Add rules if the source zone is not an UnsafeZone. Effectively SAFE_ZONES-To-{Zone}
+###         FROM_{Zone}: Add rules if the destination zone is not an UnsafeZone. Effectively {Zone}-To-SAFE_ZONES
 ###     NATRules: Defines NAT rules
-###         * See NATRule documenetation for further details
+###         * See NATRule documentation for further details
 ###
 

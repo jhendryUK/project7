@@ -1,8 +1,11 @@
 ###
-### DISCLAIMER: This is not inteded to be a firewal template, it is only to demonstrate the layout and usage of configuration directives
+### DISCLAIMER: This is not intended to be a firewall template, its purpose is to demonstrate the layout and usage of configuration directives
 ###
 ### See config.yaml for further details on directives
 ###
+
+IncludeConfigs:
+    - examples/included_config.yaml
 
 Zones:
     - External

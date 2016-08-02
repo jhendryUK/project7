@@ -409,7 +409,7 @@ class FirewallHost(object):
 
 
     def _process_zone(self, zone_type, zone_pair, unsafe_zones):
-        """Returns a bool() indicating if the rules from a zon-etype should be added to a zone-pair"""
+        """Returns a bool() indicating if the rules from a zone-type should be added to a zone-pair"""
 
         result = False
         neither_zone_restricted = self._neither_zone_is_restricted(zone_pair, unsafe_zones)
@@ -559,7 +559,7 @@ class FirewallHost(object):
         TODO: Define these rules in the YAML config instead of hard-coding them here
         """
 
-        config = generate_large_msg('Generic Firewall Settings')
+        config = self._generate_large_msg('Generic Firewall Settings')
         firewall_options = {'all-ping': 'enable',
                             'broadcast-ping': 'disable',
                             'ip-src-route': 'disable',
@@ -598,14 +598,14 @@ class FirewallHost(object):
                                      'port': self._yaml_port_groups},
                     }
 
-        config = generate_large_msg("{0} Groups".format(group_type))
+        config = self._generate_large_msg("{0} Groups".format(group_type))
 
         if not brief:
-            config += generate_small_msg("Delete all {0} groups".format(group_type))
+            config += self._generate_small_msg("Delete all {0} groups".format(group_type))
             config += "delete firewall group {0}-group\n".format(group_type)
 
         for group in config_map['names'][group_type]:
-            config += generate_small_msg("GROUP: {0}".format(group))
+            config += self._generate_small_msg("GROUP: {0}".format(group))
             config += config_map['yaml'][group_type].config(group, brief)
 
         return config
@@ -613,16 +613,16 @@ class FirewallHost(object):
     def _generate_firewall_config(self, brief=False):
         """Returns a str() of either a brief view or full config for firewall rules"""
 
-        config = generate_large_msg('Firewall Rules')
+        config = self._generate_large_msg('Firewall Rules')
 
         if not brief:
-            config += generate_small_msg('Delete all firewalls')
+            config += self._generate_small_msg('Delete all firewalls')
             config += 'delete firewall name'
-            config += generate_small_msg('Firewall: ALLOW-ALL')
+            config += self._generate_small_msg('Firewall: ALLOW-ALL')
             config += "set firewall name ALLOW-ALL default-action accept\n"
 
         for zone in self._rules:
-            config += generate_small_msg("Firewall: {0}".format(zone))
+            config += self._generate_small_msg("Firewall: {0}".format(zone))
             config += self._yaml_rule_templates.config(zone, self._rules, brief)
 
         return config
@@ -631,14 +631,14 @@ class FirewallHost(object):
     def _generate_nat_rules(self, brief=False):
         """Returns a str() of either a brief view or full config for NAT rules"""
 
-        config = generate_large_msg('NAT Rules')
+        config = self._generate_large_msg('NAT Rules')
 
         if not brief:
-            config += generate_small_msg('Delete all NAT rules')
+            config += self._generate_small_msg('Delete all NAT rules')
             config += "delete nat\n"
 
         for rule_type in self._yaml_nat_rules:
-            config += generate_small_msg("{0} Rules".format(rule_type))
+            config += self._generate_small_msg("{0} Rules".format(rule_type))
 
             for rule_number in sorted(self._yaml_nat_rules.rules[rule_type]):
                 config += self._yaml_nat_rules.config(rule_type, rule_number, brief)
@@ -649,15 +649,15 @@ class FirewallHost(object):
     def _zone_policy(self, brief=False):
         """Returns a str() of either a breief view or full config of the ZonePolicy"""
 
-        config = generate_large_msg('Zone Policies')
+        config = self._generate_large_msg('Zone Policies')
 
         if not brief:
-            config += generate_small_msg('Delete zone policy')
+            config += self._generate_small_msg('Delete zone policy')
             config += "delete zone-policy\n"
 
         if brief:
             for dst in self._zones:
-                config += generate_small_msg("ZONE: {0}".format(dst))
+                config += self._generate_small_msg("ZONE: {0}".format(dst))
                 for src in self._zones:
                     fw_name = "{0}-To-{1}".format(src, dst) if self._filter_outbound(src) else 'ALLOW-ALL'
                     config += "    From Zone {0} Apply Firewall {1}\n".format(src, fw_name)
@@ -665,7 +665,7 @@ class FirewallHost(object):
 
         else:
             for dst in self._zones:
-                config += generate_small_msg("ZONE: {0}".format(dst))
+                config += self._generate_small_msg("ZONE: {0}".format(dst))
                 config += "edit zone-policy zone {0}\n".format(dst)
                 config += "    set default-action reject\n"
                 for interface in self._zone_interfaces[dst]:
@@ -693,20 +693,22 @@ class FirewallHost(object):
         return result
     
 
-def generate_large_msg(msg):
-    return """
-############################################
-############################################
-###
-###     {0}
-###
-############################################
-############################################
-
-""".format(msg)
-
-
-def generate_small_msg(msg):
-    return "\n# {0}\n".format(msg)
+    @staticmethod
+    def _generate_large_msg(msg):
+        return """
+    ############################################
+    ############################################
+    ###
+    ###     {0}
+    ###
+    ############################################
+    ############################################
+    
+    """.format(msg)
+    
+    
+    @staticmethod
+    def _generate_small_msg(msg):
+        return "\n# {0}\n".format(msg)
 
 

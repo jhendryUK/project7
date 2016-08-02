@@ -1,0 +1,210 @@
+
+
+################################################################
+################################################################
+###                                                          ###
+###                         Zones                            ###
+###                                                          ###
+################################################################
+################################################################
+
+Zones are where you define what Zones your firewall has, associate interfaces with zones and
+declare zones as UnsafeZones. 
+
+# Example
+
+Zones:
+    - External
+    - Servers
+    - Workstations
+    - DMZ
+
+UnsafeZones:
+    - DMZ
+    - External
+
+ZonePolicy:
+    Interfaces:
+        External:
+            - eth0
+        Servers:
+            - eth1
+        Workstations:
+            - eth2
+        DMZ:
+            - eth3
+
+
+################################################################
+################################################################
+###                                                          ###
+###                         Groups                           ###
+###                                                          ###
+################################################################
+################################################################
+
+
+Groups are either Address, Network or Port types. Each type can be used in either Firewall or NAT rules.
+Defining groups are all done in the same way, they have the same structe.
+
+NOTE: RuleTemplates are case-sesitive when matching groups, ensure you type them exactly as you define them
+
+# AddressGroups
+    These are defined with the AddressGrups directive, you define one IP address per-line
+
+# Example
+AddressGroups:
+    AddressGroup1:
+        - 1.1.1.1
+        - 2.2.2.2
+        - 3.3.3.3
+
+    AddressGroup2:
+        - 6.6.6.6
+        - 7.7.7.7
+        - 8.8.8.8
+
+
+# NetworkGroups
+    These are defined with the NetworkGroups directive, you define one subnet per-line with the same CLI
+    restrictions that VyOS imposes. IE. The subnet must be defined on the network boundry with the /subnet-mask notation
+
+# Example
+NetworkGroups:
+    NetworkGroup1:
+        - 192.168.0.0/24
+        - 192.168.1.0/24
+        - 192.168.2.0/24
+
+    NetworkGroup2:
+        - 192.168.6.0/24
+        - 192.168.7.0/24
+        - 192.168.8.0/24
+
+
+
+# PortGroups
+    These are defined with the PortGroups directive, you define one port per-line
+
+# Example
+PortGroups:
+    PortGroup1:
+        - 80
+        - 443
+
+    PortGroup2:
+        - 25
+        - 465
+
+
+
+################################################################
+################################################################
+###                                                          ###
+###                      RuleTemplates                       ###
+###                                                          ###
+################################################################
+################################################################
+
+
+RuleTemplates define rules you can later assosicate with a zone-pair. Any Address, Network or Port group you use in your
+rules is automatically detected and added to your firewall, make sure you have defined them in the appropriate group section. 
+
+NOTES:  When defining log or disable option you must pass the value '' to make it take affect
+
+        Its essential you keep all source/destination options in the YAML array notation, 
+        not doing it will break the automatic group detection
+        
+        You can define any option exposed in the VyOS CLI
+
+
+# Structure of a rule template
+RuleTemplates:
+    Rule_Name:          
+        number:         [Required] Number the rule will be assigned in the firewall
+        action:         [Required] Action to be taken on rule match. drop, reject, accept, inspect
+        description:    [Optional] Rule description
+        protocol:       [Optional] Protocol to match. Common options are  tcp, udp, tcp_udp, icmp
+        state:          [Optional] State of the packet to match against
+        log:            [Optional] Log packets matching this rule
+        source:         [Optional] Source information of the packet to match against. Requires at least one sub-option
+            - Option1   [Required] Required only if you are have defined the source option
+            - Option2   [Optional] Additional options for source matching
+            - ...
+        destinaton:     [Optional] Destinaton information of the packet to match against. Requires at least one sub-option
+            - Option1   [Required] Required only if you are have defined the destination option
+            - Option2   [Optional] Additional options for destination matching
+            - ...
+
+
+# Example
+RuleTemplates:
+    ALLOW_RFC1918:
+        number: 100
+        description: Allow RFC1918
+        log: ''
+        source:
+            - group network-group RFC1918
+        destination:
+            - address 0.0.0.0/0
+
+
+
+################################################################
+################################################################
+###                                                          ###
+###                      FirewallRule                        ###
+###                                                          ###
+################################################################
+################################################################
+
+
+FirewallRules is where you map RuleTemplates to zone-pairs. A zone-pair is a mapping of two zones in the format of {Zone}-To-{Zone}
+When defining zones you have the option to declare specific ones as unsafe, these zones are excluded from most zone comparisons and is 
+intended to be used for External/DMZ zones.
+
+Default zones you can match against are:
+    ALL_ZONES: Add rules to every zone-pair
+    SAFE_ZONES: Add rules if neither zone in the zone-pair is an UnsafeZone
+    UNSAFE_ZONES: Add rules if one of the zones in the zone-pair is not an UnsafeZone. Effectively UNSAFE_ZONES-To-SAFE_ZONES and SAFE_ZONES-To-UNSAFE_ZONES
+    {Zone}-To-{Zone}: Add rules if the zone-pair exactly matches
+
+For each zone you define you get a set of 3 dynamic zone-pairs, {Zone} can be either a safe or unsafe zone:
+    {Zone}: Add rules if one of the zones in the zone-pair is not an UnsafeZone. Effectively {Zone}-To-SAFE_ZONES and SAFE_ZONES-To-{Zone}
+    TO_{Zone}: Add rules if the source zone is not an UnsafeZone. Effectively SAFE_ZONES-To-{Zone}
+    FROM_{Zone}: Add rules if the destination zone is not an UnsafeZone. Effectively {Zone}-To-SAFE_ZONES
+
+
+# Example
+FirewallRules:
+    ALL_ZONES:
+        - ALLOW_ESTABLISHED
+        - ALLOW_RELATED
+        - ALLOW_ICMP
+
+    SAFE_ZONES:
+        - ALLOW_RFC1918
+
+    DMZ:
+        - ALLOW_TRUSTED_SERVICES
+
+    TO_External:
+        - ALLOW_INTERNET_ACCESS
+
+    DMZ-To-External:
+        - ALLOW_INTERNET_ACCESS
+
+
+NOTES: The last rule 'DMZ-To-External' is required because the TO_External will not match it as the source zone (DMZ) is marked as an unsafe network
+
+
+
+################################################################
+################################################################
+###                                                          ###
+###                         NATRules                         ###
+###                                                          ###
+################################################################
+################################################################
+
+
