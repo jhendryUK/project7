@@ -1,5 +1,4 @@
 
-
 ################################################################
 ################################################################
 ###                                                          ###
@@ -45,9 +44,9 @@ ZonePolicy:
 
 
 Groups are either Address, Network or Port types. Each type can be used in either Firewall or NAT rules.
-Defining groups are all done in the same way, they have the same structe.
+Defining groups are all done in the same way, they have the same structure.
 
-NOTE: RuleTemplates are case-sesitive when matching groups, ensure you type them exactly as you define them
+NOTE: RuleTemplates are case-sensitive when matching groups, ensure you type them exactly as you define them
 
 # AddressGroups
     These are defined with the AddressGrups directive, you define one IP address per-line
@@ -67,7 +66,7 @@ AddressGroups:
 
 # NetworkGroups
     These are defined with the NetworkGroups directive, you define one subnet per-line with the same CLI
-    restrictions that VyOS imposes. IE. The subnet must be defined on the network boundry with the /subnet-mask notation
+    restrictions that VyOS imposes. IE. The subnet must be defined on the network boundary with the /subnet-mask notation
 
 # Example
 NetworkGroups:
@@ -107,7 +106,7 @@ PortGroups:
 ################################################################
 
 
-RuleTemplates define rules you can later assosicate with a zone-pair. Any Address, Network or Port group you use in your
+RuleTemplates define rules you can later associate with a zone-pair. Any Address, Network or Port group you use in your
 rules is automatically detected and added to your firewall, make sure you have defined them in the appropriate group section. 
 
 NOTES:  When defining log or disable option you must pass the value '' to make it take affect
@@ -131,7 +130,7 @@ RuleTemplates:
             - Option1   [Required] Required only if you are have defined the source option
             - Option2   [Optional] Additional options for source matching
             - ...
-        destinaton:     [Optional] Destinaton information of the packet to match against. Requires at least one sub-option
+        destinaton:     [Optional] Destination information of the packet to match against. Requires at least one sub-option
             - Option1   [Required] Required only if you are have defined the destination option
             - Option2   [Optional] Additional options for destination matching
             - ...
