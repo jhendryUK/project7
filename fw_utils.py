@@ -1,8 +1,13 @@
 #!/usr/bin/env python
 
+###
+### TODO: Define generic firewall option from the YAML config instead of hard-coding
+###
+
 """
 Exposes classes used to generate a VyOS Zone Firewall and NAT rules
 """
+
 
 import yaml
 import itertools
@@ -540,12 +545,8 @@ class FirewallHost(object):
 
 
     def _generic_settings(self, brief):
-        """
-        Returns a str() of either a brief view or full config of generic firewall options
+        """Returns a str() of either a brief view or full config of generic firewall options"""
         
-        TODO: Define these rules in the YAML config instead of hard-coding them here
-        """
-
         config = self._generate_large_msg('Generic Firewall Settings')
         firewall_options = {'all-ping': 'enable',
                             'broadcast-ping': 'disable',
