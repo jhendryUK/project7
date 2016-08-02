@@ -286,7 +286,7 @@ class FirewallHost(object):
         self._yaml_rule_templates = RuleTemplates(all_configs)
         self._yaml_nat_rules = NATRules(all_configs)
 
-        self._prepare_zones(all_configs)
+        self._prepare_zone_policy(all_configs)
         self._find_yaml_firewall_rules(all_configs)
 
 
@@ -306,29 +306,6 @@ class FirewallHost(object):
                     raise ErrorConfigFileDoesNotExist(config_file)
             except Exception:
                 raise
-
-
-    def _prepare_zones(self, configs):
-        """Load zones, verifies they have an interface assigned and generate zone-pairs"""
-
-        for config in configs:
-            try:
-                for zone in config['Zones']:
-                    self._add_zone(zone)
-            
-            except (AttributeError, KeyError, TypeError):
-                pass
-
-        if not self._zones:
-            raise ErrorHostHasNoZonesDefined()
-
-        self._prepare_zone_policy(configs)
-        self._add_zone('Self')
-
-        for src, dst in itertools.permutations(self._zones, 2):
-            if self._filter_outbound(src):
-                zone = "{0}-To-{1}".format(src, dst)
-                self._rules[zone] = []
 
 
     def _add_zone(self, zone):
@@ -355,17 +332,28 @@ class FirewallHost(object):
             self._self_filter_outbound = filter_outbound
 
         for config in configs:
-            for zone in self._zones:
-                try:
-                    for interface in config['ZonePolicy']['Interfaces'][zone]:
+            try:
+                for zone, interfaces in config['ZonePolicy']['Zones'].iteritems():
+                    self._add_zone(zone)
+                    for interface in interfaces:
                         if not interface in self._zone_interfaces[zone]:
                             self._zone_interfaces[zone].append(interface)
-                except (AttributeError, KeyError, TypeError):
-                    pass
+
+            except (AttributeError, KeyError, TypeError):
+                pass
+
+        if not self._zones:
+            raise ErrorHostHasNoZonesDefined()
 
         for zone in self._zones:
             if not self._zone_interfaces[zone]:
                 raise ErrorZoneHasNoInterfaces(zone)
+
+        self._add_zone('Self')
+        for src, dst in itertools.permutations(self._zones, 2):
+            if self._filter_outbound(src):
+                zone = "{0}-To-{1}".format(src, dst)
+                self._rules[zone] = []
 
 
     def _find_yaml_firewall_rules(self, configs):
@@ -380,7 +368,6 @@ class FirewallHost(object):
 
         for config in configs:
             for zone_pair in self:
-                # Check for rules from zones classes and zone pairs
                 for zone_type in self._zone_types():
                     if self._process_zone(zone_type, zone_pair, unsafe_zones):
                         try:
@@ -696,15 +683,15 @@ class FirewallHost(object):
     @staticmethod
     def _generate_large_msg(msg):
         return """
-    ############################################
-    ############################################
-    ###
-    ###     {0}
-    ###
-    ############################################
-    ############################################
-    
-    """.format(msg)
+############################################
+############################################
+###
+###     {0}
+###
+############################################
+############################################
+
+""".format(msg)
     
     
     @staticmethod

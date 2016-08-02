@@ -7,23 +7,13 @@
 ################################################################
 ################################################################
 
-Zones are where you define what Zones your firewall has, associate interfaces with zones and
-declare zones as UnsafeZones. 
+Zones is where you define what Zones your firewall has,
+associate interfaces with zones and declare zones as UnsafeZones. 
 
 # Example
 
-Zones:
-    - External
-    - Servers
-    - Workstations
-    - DMZ
-
-UnsafeZones:
-    - DMZ
-    - External
-
 ZonePolicy:
-    Interfaces:
+    Zones:
         External:
             - eth0
         Servers:
@@ -32,6 +22,10 @@ ZonePolicy:
             - eth2
         DMZ:
             - eth3
+
+UnsafeZones:
+    - DMZ
+    - External
 
 
 ################################################################

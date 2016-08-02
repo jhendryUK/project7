@@ -7,20 +7,9 @@
 IncludeConfigs:
     - examples/included_config.yaml
 
-Zones:
-    - External
-    - Servers
-    - DMZ
-    - Workstations
-
-UnsafeZones:
-    - External
-    - Self
-    - DMZ
-
 ZonePolicy:
     FilterSelfOutbound: False
-    Interfaces:
+    Zones:
         External:
             - eth0
         Servers:
@@ -29,6 +18,11 @@ ZonePolicy:
             - eth2
         Workstations:
             - eth3
+
+UnsafeZones:
+    - External
+    - Self
+    - DMZ
 
 AddressGroups:
     TRUSTED_HOST:

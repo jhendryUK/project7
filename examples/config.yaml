@@ -2,13 +2,12 @@
 ### Available Directives:
 ###     IncludeConfigs: Path to other config files to include
 ###                     Config files at the top of this list override settings in those below it
-###     Zones: Zones to be defined, these can also be used in FirewallRules (see below)
 ###     UnsafeZones: These zones will be excluded from most dynamic zone-type comparsions, see below for details
 ###     ZonePolicy:
 ###         FilterSelfOutbound: Should 'Self' (IE. The router itself) be filtered on outbound traffic  [REQUIRED]
-###         Interfaces: Mapping of interfaces to zones
-###             {Zone}: Zone name to add an interface to
-###                 - ethX: Adding an interface to a zone
+###         Zones: Mapping between zones and interfaces
+###             {Zone}: Zone name to reate
+###                 - ethX: Add an interface to a zone
 ###     AddressGroups: Define address groups which can be used in firewall rules or NAT's
 ###         * See Groups documentation for further details
 ###     NetworkGroups: Define network groups which can be used in firewall rules or NAT's
