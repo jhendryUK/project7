@@ -10,7 +10,17 @@
 Zones is where you define what Zones your firewall has, associate interfaces with
 zones and declare zones as UnsafeZones. Self defined by default and refers to the router itself
 
-FilterSelfOutbound decides if you want Self (the router itself) to be filtered on outbound traffuc
+FilterSelfOutbound decides if you want Self (the router itself) to be filtered on outbound traffic
+
+# Structure
+ZonePolicy:
+    FilterSelfOutbound              # Bool indicating if the router should have its traffic filtered outbound
+    Zones:
+        {ZoneName}:                 # Name of the zone to define
+            - {NetworkInterface}    # Interface to add to the zone
+
+UnsafeZones:
+    - {ZoneName}                    # Zone to be marked as unsafe, recieve a restricted set of firewall rules
 
 # Example
 ZonePolicy:
@@ -44,6 +54,11 @@ Groups are either Address, Network or Port types. Each type can be used in eithe
 Defining groups are all done in the same way, they have the same structure.
 
 NOTE: RuleTemplates are case-sensitive when matching groups, ensure you type them exactly as you define them
+
+# Structure
+{GroupType}:                # Type of group to define
+    {GroupName}:            # Name of the group
+        - {MemberOfGroup}   # Entry to add to the group
 
 # AddressGroups
     These are defined with the AddressGrups directive, you define one IP address per-line
@@ -114,7 +129,7 @@ NOTES:  When defining log or disable option you must pass the value '' to make i
         You can define any option exposed in the VyOS CLI
 
 
-# Structure of a rule template
+# Structure
 RuleTemplates:
     Rule_Name:          
         number:         [Required] Number the rule will be assigned in the firewall
@@ -202,5 +217,41 @@ NOTES: The last rule 'DMZ-To-External' is required because the TO_External will 
 ###                                                          ###
 ################################################################
 ################################################################
+
+NATRules is where you define source and destination nat rules. No trickery and simple syntax
+
+NOTES: You can use any option available in the CLI
+
+# Structure
+NATRules:
+    {NATType}:          # NAT type. Either source or destination
+        {RuleNumber}:   # Number of the rules to define
+            {options}   # Options to define for the NAT rule
+
+# Examples
+NATRules:
+    destination:
+        100:
+            description: Allow inbound SMTP
+            inbound-interface: any
+            protocol: tcp
+            translation: address 172.23.18.188
+            destination:
+                - address 8.0.0.0/8
+                - port 25,465
+            source:
+                - address 0.0.0.0/0
+
+    source:
+        100:
+            description: Allow outbound smtp
+            outbound-interface: eth0
+            protocol: tcp
+            translation: address 8.8.8.8
+            destination:
+                - address 0.0.0.0/0
+                - port 25,465
+            source:
+                - address 172.23.18.188
 
 
