@@ -1,6 +1,11 @@
 #!/usr/bin/env python
 
 ###
+### Project 7
+### VyOS Firewall/NAT/ZonePolicy config generator
+###
+### Author: https://github.com/jhendryUK
+###
 ### TODO:
 ###         * Define generic firewall option from the YAML config instead of hard-coding
 ###         * Add management of WAN LoadBalancing

@@ -1,0 +1,31 @@
+###
+### Project7
+### VyOS Firewall/NAT/ZonePolicy config generator
+###
+
+* Intended audience
+
+This in intended for people who need to manage a large number of VyOS instances keep the Firewall/NAT and ZonePolicy portions of the configuration in sync in a easy and reproducible way.
+
+* Operation
+
+By default it generates a .vbash script with an action of 'compare' which will show you the differences between your running config and the new generated one. You need to re-run
+the script with -c (for commit) and optionally -s (save) if you want to commit and save via the generated file.
+
+The firewall IncludeConfigs: statement does not recursively follow includes with other config files, this means you need to specify all your includes at a high level. For example:
+
+    {scriptdir}/project7.py
+    {scriptdir}/configs/templates/base.yaml
+    {scriptdir}/configs/templates/edge-router.yaml
+    {scriptdir}/configs/hosts/router1.yaml
+
+Inside router1.yaml you will include edge-router.yaml and base.yaml and then set any per-router settings directly inside router1.yaml.
+
+* Rollout
+
+Rollout process is manual which means you will need to copy and execute the script manually or via any method you choose.  In the future there will be an automated rollout process in the form
+of a cronjob which runs on the router, checkouts a version-controlled copy of the configs directory, generates its config and applies it. For now this is still a pipe-dream but we will get there.
+
+* Comments / Suggestions
+
+I am open to all forms of comments and suggestions feel free to contact me via github https://github.com/jhendryUK

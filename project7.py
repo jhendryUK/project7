@@ -1,5 +1,12 @@
 #!/usr/bin/env python
 
+"""
+Project 7
+VyOS Firewall/NAT/ZonePolicy config generator
+
+Author: https://github.com/jhendryUK
+"""
+
 import os
 import sys
 import argparse
