@@ -1,7 +1,10 @@
 #!/usr/bin/env python
 
 ###
-### TODO: Define generic firewall option from the YAML config instead of hard-coding
+### TODO:
+###         * Define generic firewall option from the YAML config instead of hard-coding
+###         * Add management of WAN LoadBalancing
+###         * Cleanup code with generators and contextual objects
 ###
 
 """
