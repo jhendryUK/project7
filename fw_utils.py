@@ -7,7 +7,8 @@
 ### Author: https://github.com/jhendryUK
 ###
 ### TODO:
-###         * Define generic firewall option from the YAML config instead of hard-coding
+###         * Make generic firewall options configurable via YAML
+###         * Make default zone actions configurable via YAML
 ###         * Add management of WAN LoadBalancing
 ###         * Cleanup code with generators and contextual objects
 ###
