@@ -29,9 +29,6 @@ run_cmd "--config ./test1.yaml" "Error: Self outbound policy is not defined"
 echo Check running without any zones defined
 run_cmd "--config ./test2.yaml" "Error: No zones defined"
 
-###
-### Checks from here on generate a valid .vbash file, its contents needs to be checked
-###
 echo Check with a zone without any interfaces
 run_cmd "--config ./test3.yaml" "Error: No interfaces have been defined for zone External"
 
@@ -50,5 +47,8 @@ run_cmd "--config ./test7.yaml" "Error: port-group HTTP_PORTS not defined"
 #echo Check adding a rule to a zone which does not exist
 #run_cmd "--config ./test8.yaml" "Error: "  # Silently dropped, needs an explicit error
 
+###
+### Check generated config
+###
 
 echo "All tests passed"
