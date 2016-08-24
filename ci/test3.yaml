@@ -1,0 +1,4 @@
+ZonePolicy:
+    FilterSelfOutbound: False
+    Zones:
+        External:

@@ -46,7 +46,11 @@ class ErrorUnknownGroupType(ErrorBaseException):
 
 class ErrorGroupNotDefined(ErrorBaseException):
     def message(self):
-        return "{0} {1} not defined".format(self.type, self.name)
+        return "{0}-group {1} not defined".format(self.type, self.name)
+
+class ErrorRuleNotDefined(ErrorBaseException):
+    def message(self):
+        return "RuleTemplate {0} not defined".format(self.name)
 
 class ErrorRedefiningRuleTemplate(ErrorBaseException):
     def message(self):
@@ -533,7 +537,11 @@ class FirewallHost(object):
 
         for zone in self._rules:
             for rule_name in self._rules[zone]:
-                rule = getattr(self._yaml_rule_templates, rule_name)
+                try:
+                    rule = getattr(self._yaml_rule_templates, rule_name)
+                except AttributeError:
+                    raise ErrorRuleNotDefined(name=rule_name)
+
                 for direction in ['source', 'destination']:
                     try:
                         option = rule[direction]

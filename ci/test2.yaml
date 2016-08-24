@@ -1,0 +1,3 @@
+ZonePolicy:
+    FilterSelfOutbound: False
+

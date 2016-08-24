@@ -1,0 +1,20 @@
+ZonePolicy:
+    FilterSelfOutbound: False
+    Zones:
+        External:
+            - eth0
+
+RuleTemplates:
+    ALLOW_INBOUND_HTTP:
+        number: 200
+        description: Allow Inbound HTTP
+        action: accept
+        destination:
+            - address 192.168.0.200
+            - group port-group HTTP_PORTS
+
+
+FirewallRules:
+    ALL_ZONES:
+        - ALLOW_INBOUND_HTTP
+

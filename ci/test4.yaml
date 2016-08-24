@@ -1,0 +1,10 @@
+ZonePolicy:
+    FilterSelfOutbound: False
+    Zones:
+        External:
+            - eth0
+
+FirewallRules:
+    ALL_ZONES:
+        - ALLOW_ESTABLISHED
+

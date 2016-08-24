@@ -1,0 +1,19 @@
+ZonePolicy:
+    FilterSelfOutbound: False
+    Zones:
+        External:
+            - eth0
+
+RuleTemplates:
+    ALLOW_TRUSTED_HOST:
+        number: 50
+        description: Allow trusted host
+        action: accept
+        source:
+            - group address-group TRUSTED_HOST
+
+
+FirewallRules:
+    ALL_ZONES:
+        - ALLOW_TRUSTED_HOST
+

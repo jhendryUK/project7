@@ -1,0 +1,18 @@
+ZonePolicy:
+    FilterSelfOutbound: False
+    Zones:
+        External:
+            - eth0
+
+RuleTemplates:
+    BLOCK_RFC1918:
+        number: 15
+        description: Block RFC1918
+        action: drop
+        source:
+            - group network-group RFC1918
+
+FirewallRules:
+    ALL_ZONES:
+        - BLOCK_RFC1918
+
