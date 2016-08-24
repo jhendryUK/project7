@@ -68,4 +68,17 @@ def main():
         SaveFirewallConfig(GenerateVBashConfig(fw_config, args), args.config.replace('.yaml', '.vbash'))
 
 if __name__ == '__main__':
-    main()
+    known_exceptions = (fw_utils.ErrorConfigFileDoesNotExist,
+                        fw_utils.ErrorNoZonesDefined,
+                        fw_utils.ErrorZoneNotDefined,
+                        fw_utils.ErrorUnknownGroupType,
+                        fw_utils.ErrorGroupNotDefined,
+                        fw_utils.ErrorRedefiningRuleTemplate,
+                        fw_utils.ErrorRedefiningRuleTemplateNumber,
+                        fw_utils.ErrorNotDefinedSelfOutboundPolicy,
+                        fw_utils.ErrorZoneHasNoInterfaces)
+    try:
+        main()
+    except known_exceptions, e:
+        print "Error: {0}".format(e.message())
+        

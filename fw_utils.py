@@ -9,6 +9,7 @@
 ### TODO:
 ###         * Make generic firewall options configurable via YAML
 ###         * Make default zone actions configurable via YAML
+###         * Fix error handling to provide more useful messages
 ###         * Add management of WAN LoadBalancing
 ###         * Cleanup code with generators and contextual objects
 ###
@@ -22,32 +23,47 @@ import yaml
 import itertools
 from collections import OrderedDict
 
-class ErrorConfigFileDoesNotExist(Exception):
-    pass
+class ErrorBaseException(Exception):
+    def __init__(self, **kwargs):
+        for key, value in kwargs.iteritems():
+            setattr(self, key, value)
 
-class ErrorHostHasNoZonesDefined(Exception):
-    pass
+class ErrorConfigFileDoesNotExist(ErrorBaseException):
+    def message(self):
+        return "Config file {0} does not exist".format(self.file)        
 
-class ErrorZoneNotDefined(Exception):
-    pass
+class ErrorNoZonesDefined(ErrorBaseException):
+    def message(self):
+        return "No zones defined"
 
-class ErrorUnknownGroupType(Exception):
-    pass
+class ErrorZoneNotDefined(ErrorBaseException):
+    def message(self):
+        return "Zone {0} not defined. (Used by rule {1}".format(self.zone, self.rule)
 
-class ErrorGroupNotDefined(Exception):
-    pass
+class ErrorUnknownGroupType(ErrorBaseException):
+    def message(self):
+        return "Unknown group type {0}. Valid types are address-group, network-group, port-group".format(self.type)
 
-class ErrorRedefiningRuleTemplate(Exception):
-    pass
+class ErrorGroupNotDefined(ErrorBaseException):
+    def message(self):
+        return "{0} {1} not defined".format(self.type, self.name)
 
-class ErrorRedefiningRuleTemplateNumber(Exception):
-    pass
+class ErrorRedefiningRuleTemplate(ErrorBaseException):
+    def message(self):
+        return "You have redefined rule {0}. This is dangerous and not allowed".format(self.name)
 
-class ErrorNotDefinedSelfOutboundPolicy(Exception):
-    pass
+class ErrorRedefiningRuleTemplateNumber(ErrorBaseException):
+    def message(self):
+        return "You are reusing rule number {0} in rule {1}. This is dangerous and not allowed".format(self.number, self.name)
 
-class ErrorZoneHasNoInterfaces(Exception):
-    pass
+class ErrorNotDefinedSelfOutboundPolicy(ErrorBaseException):
+    def message(self):
+        return "Self outbound policy is not defined"
+
+class ErrorZoneHasNoInterfaces(ErrorBaseException):
+    def message(self):
+        return "No interfaces have been defined for zone {0}".format(self.zone)
+
 
 class GroupManager(object):
     """
@@ -63,7 +79,7 @@ class GroupManager(object):
         """Validate group type and load all groups from it"""
         
         if not group_type in ['address', 'network', 'port']:
-            raise ErrorUnknownGroupType(group_type)
+            raise ErrorUnknownGroupType(type=group_type)
 
         self.groups = []
         self._group_type = group_type
@@ -118,7 +134,7 @@ class GroupManager(object):
                 for ip in getattr(self, group_name):
                     config += "    {0}\n".format(ip)
             except AttributeError:
-                raise ErrorGroupNotDefined("{0} group not defined: {1}".format(self._group_type, group_name))
+                raise ErrorGroupNotDefined(type=self._group_type, name=group_name)
 
         else:
             config += "edit firewall group {0} {1}\n".format(mapped_group, group_name)
@@ -127,7 +143,7 @@ class GroupManager(object):
                     config += "    set {0} {1}\n".format(self._group_type, value)
                 config += '    top\n'
             except AttributeError:
-                raise ErrorGroupNotDefined("{0} group not defined: {1}".format(self._group_type, group_name))
+                raise ErrorGroupNotDefined(type=self._group_type, name=group_name)
             
         return config
 
@@ -184,12 +200,12 @@ class RuleTemplates(RuleManager):
         """Raises an exception if a rule template name or rule number is being redefined"""
 
         if name in self.rules:
-            raise ErrorRedefiningRuleTemplate("You have redefined rule {0}. This is dangerous and not allowed".format(name))
+            raise ErrorRedefiningRuleTemplate(name=name)
 
         new_number = options['number']
         for rule in self.rules:
             if new_number == getattr(self, rule)['number']:
-               raise ErrorRedefiningRuleTemplateNumber("You are reusing rule number {0} in rule {1}. This is dangerous and not allowed".format(new_number, name))
+               raise ErrorRedefiningRuleTemplateNumber(number=new_number, name=name)
 
     
 
@@ -317,7 +333,7 @@ class FirewallHost(object):
         except IOError, e:
             try:
                 if e.errno == 2:
-                    raise ErrorConfigFileDoesNotExist(config_file)
+                    raise ErrorConfigFileDoesNotExist(file=config_file)
             except Exception:
                 raise
 
@@ -357,11 +373,11 @@ class FirewallHost(object):
                 pass
 
         if not self._zones:
-            raise ErrorHostHasNoZonesDefined()
+            raise ErrorNoZonesDefined()
 
         for zone in self._zones:
             if not self._zone_interfaces[zone]:
-                raise ErrorZoneHasNoInterfaces(zone)
+                raise ErrorZoneHasNoInterfaces(zone=zone)
 
         self._add_zone('Self')
         for src, dst in itertools.permutations(self._zones, 2):
@@ -490,7 +506,7 @@ class FirewallHost(object):
                 self._rules[zone].append(rule)
         
         except KeyError:
-            raise ErrorZoneNotDefined(zone)
+            raise ErrorZoneNotDefined(zone=zone, rule=rule)
 
 
     def config(self, brief=False):
@@ -521,14 +537,14 @@ class FirewallHost(object):
                 for direction in ['source', 'destination']:
                     try:
                         option = rule[direction]
+                    except KeyError:
+                        pass
+                    else:
                         if isinstance(option, list):
                             for single in option:
                                 self._find_group_in_rule(single)
                         else:
                             self._find_group_in_rule(option)
-                    
-                    except KeyError:
-                        pass
 
         self._address_groups.sort()
         self._network_groups.sort()
@@ -540,17 +556,17 @@ class FirewallHost(object):
 
         try:
             option_tree, group_type, group_name = option.split(' ')
-
-            if option_tree == 'group':
-                group_type_map = {  'address-group': self._address_groups,
-                                    'network-group': self._network_groups,
-                                    'port-group': self._port_groups}
-                
-                if not group_name in group_type_map[group_type]:
-                    group_type_map[group_type].append(group_name)
-
         except ValueError:
-            pass
+            return
+
+        if option_tree == 'group':
+            group_type_map = {  'address-group': self._address_groups,
+                                'network-group': self._network_groups,
+                                'port-group': self._port_groups}
+            
+            if not group_name in group_type_map[group_type]:
+                group_type_map[group_type].append(group_name)
+
 
 
     def _generic_settings(self, brief):
@@ -707,5 +723,4 @@ class FirewallHost(object):
     @staticmethod
     def _generate_small_msg(msg):
         return "\n# {0}\n".format(msg)
-
 
