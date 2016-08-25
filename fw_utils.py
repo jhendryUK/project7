@@ -24,47 +24,58 @@ import itertools
 from collections import OrderedDict
 
 class ErrorBaseException(Exception):
+    exit_code = 200
     def __init__(self, **kwargs):
         for key, value in kwargs.iteritems():
             setattr(self, key, value)
 
 class ErrorConfigFileDoesNotExist(ErrorBaseException):
+    exit_code = 1
     def message(self):
         return "Config file {0} does not exist".format(self.file)        
 
 class ErrorNoZonesDefined(ErrorBaseException):
+    exit_code = 2
     def message(self):
         return "No zones defined"
 
 class ErrorZoneNotDefined(ErrorBaseException):
+    exit_code = 3
     def message(self):
         return "Zone {0} not defined. (Used by rule {1}".format(self.zone, self.rule)
 
 class ErrorUnknownGroupType(ErrorBaseException):
+    exit_code = 4
     def message(self):
         return "Unknown group type {0}. Valid types are address-group, network-group, port-group".format(self.type)
 
 class ErrorGroupNotDefined(ErrorBaseException):
+    exit_code = 5
     def message(self):
         return "{0}-group {1} not defined".format(self.type, self.name)
 
 class ErrorRuleNotDefined(ErrorBaseException):
+    exit_code = 6
     def message(self):
         return "RuleTemplate {0} not defined".format(self.name)
 
 class ErrorRedefiningRuleTemplate(ErrorBaseException):
+    exit_code = 7
     def message(self):
         return "You have redefined rule {0}. This is dangerous and not allowed".format(self.name)
 
 class ErrorRedefiningRuleTemplateNumber(ErrorBaseException):
+    exit_code = 8
     def message(self):
         return "You are reusing rule number {0} in rule {1}. This is dangerous and not allowed".format(self.number, self.name)
 
 class ErrorNotDefinedSelfOutboundPolicy(ErrorBaseException):
+    exit_code = 9
     def message(self):
         return "Self outbound policy is not defined"
 
 class ErrorZoneHasNoInterfaces(ErrorBaseException):
+    exit_code = 10
     def message(self):
         return "No interfaces have been defined for zone {0}".format(self.zone)
 

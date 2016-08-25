@@ -67,6 +67,8 @@ def main():
     else:
         SaveFirewallConfig(GenerateVBashConfig(fw_config, args), args.config.replace('.yaml', '.vbash'))
 
+    sys.exit(0)
+
 if __name__ == '__main__':
     known_exceptions = (fw_utils.ErrorConfigFileDoesNotExist,
                         fw_utils.ErrorNoZonesDefined,
@@ -82,4 +84,5 @@ if __name__ == '__main__':
         main()
     except known_exceptions, e:
         print "Error: {0}".format(e.message())
+        sys.exit(e.exit_code)
         
