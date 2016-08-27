@@ -6,14 +6,16 @@ function run_cmd() {
     cmd="$bin $1"
     out=$2
 
-    rc=`$cmd`
+    data=`$cmd`
+    rc=$?
 
-    if [ "x$rc" != "x$out" ]; then
+    if [ "x$data" != "x$out" ]; then
         echo "Unexpected output when running $cmd" >&2
         echo -e "\t We expected:    '$out'" >&2
-        echo -e "\t We got:         '$rc'" >&2
+        echo -e "\t We got:         '$data'" >&2
         exit 1
     fi
+
 }
 
 
@@ -44,8 +46,8 @@ run_cmd "--config ./test6.yaml" "Error: address-group TRUSTED_HOST not defined"
 echo Check RuleTemplate when port-group not defined
 run_cmd "--config ./test7.yaml" "Error: port-group HTTP_PORTS not defined"
 
-#echo Check adding a rule to a zone which does not exist
-#run_cmd "--config ./test8.yaml" "Error: "  # Silently dropped, needs an explicit error
+echo Check adding a rule to a zone which does not exist
+run_cmd "--config ./test8.yaml" "Error: You are creating a rule in an undefined zone-pair fake_zone"
 
 ###
 ### Check generated config

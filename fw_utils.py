@@ -79,6 +79,10 @@ class ErrorZoneHasNoInterfaces(ErrorBaseException):
     def message(self):
         return "No interfaces have been defined for zone {0}".format(self.zone)
 
+class ErrorUnknownZonePairUsed(ErrorBaseException):
+    exit_code = 11
+    def message(self):
+        return "You are creating a rule in an undefined zone-pair {0}".format(self.pair)
 
 class GroupManager(object):
     """
@@ -411,9 +415,18 @@ class FirewallHost(object):
             except (AttributeError, KeyError, TypeError):
                 pass
 
+        zone_types = self._zone_types()
+        for config in configs:
+            try:
+                for zone_pair in config['FirewallRules']:
+                    if not zone_pair in zone_types:
+                        raise ErrorUnknownZonePairUsed(pair=zone_pair)
+            except (AttributeError, KeyError, TypeError):
+                pass
+
         for config in configs:
             for zone_pair in self:
-                for zone_type in self._zone_types():
+                for zone_type in zone_types:
                     if self._process_zone(zone_type, zone_pair, unsafe_zones):
                         try:
                             for rule_name in config['FirewallRules'][zone_type]:

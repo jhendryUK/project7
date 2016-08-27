@@ -79,7 +79,8 @@ if __name__ == '__main__':
                         fw_utils.ErrorRedefiningRuleTemplateNumber,
                         fw_utils.ErrorNotDefinedSelfOutboundPolicy,
                         fw_utils.ErrorZoneHasNoInterfaces,
-                        fw_utils.ErrorRuleNotDefined)
+                        fw_utils.ErrorRuleNotDefined,
+                        fw_utils.ErrorUnknownZonePairUsed)
     try:
         main()
     except known_exceptions, e:

@@ -11,7 +11,7 @@ RuleTemplates:
         action: accept
         destination:
             - address 192.168.0.200
-            - group port-group HTTP_PORTS
+            - port 80,443
 
 
 FirewallRules:
