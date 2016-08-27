@@ -51,6 +51,7 @@ def main():
     parser.add_argument('-b', '--brief', dest='brief', action='store_true', default=False, help='Print a brief view of the firewall')
     parser.add_argument('-c', '--commit', dest='commit', action='store_true', default=False, help='Change the action of the .vbash script to commit')
     parser.add_argument('-s', '--save', dest='save', action='store_true', default=False, help='Add a save option to the end of the .vbash script')
+    parser.add_argument('-o', '--output', dest='output', action='store', default=False, help='Destination file for the generated config')
     parser.add_argument('--config', dest='config', required=True, help='Config to generate a firewall from')
 
     if len(sys.argv) == 1:
@@ -65,7 +66,8 @@ def main():
     if args.brief:
         print fw_config
     else:
-        SaveFirewallConfig(GenerateVBashConfig(fw_config, args), args.config.replace('.yaml', '.vbash'))
+        output_file = args.output if args.output else args.config.replace('.yaml', '.vbash')
+        SaveFirewallConfig(GenerateVBashConfig(fw_config, args), output_file)
 
     sys.exit(0)
 

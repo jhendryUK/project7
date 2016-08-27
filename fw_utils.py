@@ -9,7 +9,6 @@
 ### TODO:
 ###         * Make generic firewall options configurable via YAML
 ###         * Make default zone actions configurable via YAML
-###         * Fix error handling to provide more useful messages
 ###         * Add management of WAN LoadBalancing
 ###         * Cleanup code with generators and contextual objects
 ###
