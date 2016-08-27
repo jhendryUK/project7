@@ -1,0 +1,741 @@
+#!/bin/vbash
+source /opt/vyatta/etc/functions/script-template
+configure
+
+
+############################################
+############################################
+###
+###     Generic Firewall Settings
+###
+############################################
+############################################
+
+edit firewall
+   delete broadcast-ping
+   set broadcast-ping disable
+   delete source-validation
+   set source-validation disable
+   delete ipv6-src-route
+   set ipv6-src-route disable
+   delete ip-src-route
+   set ip-src-route disable
+   delete syn-cookies
+   set syn-cookies enable
+   delete send-redirects
+   set send-redirects enable
+   delete ipv6-receive-redirects
+   set ipv6-receive-redirects disable
+   delete receive-redirects
+   set receive-redirects disable
+   delete log-martians
+   set log-martians disable
+   delete all-ping
+   set all-ping enable
+   top
+
+############################################
+############################################
+###
+###     address Groups
+###
+############################################
+############################################
+
+
+# Delete all address groups
+delete firewall group address-group
+
+# GROUP: TRUSTED_HOST
+edit firewall group address-group TRUSTED_HOST
+    set address 192.168.0.10
+    top
+
+############################################
+############################################
+###
+###     network Groups
+###
+############################################
+############################################
+
+
+# Delete all network groups
+delete firewall group network-group
+
+# GROUP: RFC1918
+edit firewall group network-group RFC1918
+    set network 10.0.0.0/8
+    set network 172.16.0.0/12
+    set network 192.168.0.0/16
+    top
+
+############################################
+############################################
+###
+###     port Groups
+###
+############################################
+############################################
+
+
+# Delete all port groups
+delete firewall group port-group
+
+# GROUP: SSH
+edit firewall group port-group SSH
+    set port 22
+    top
+
+############################################
+############################################
+###
+###     Firewall Rules
+###
+############################################
+############################################
+
+
+# Delete all firewalls
+delete firewall name
+# Firewall: ALLOW-ALL
+set firewall name ALLOW-ALL default-action accept
+
+# Firewall: DMZ-To-External
+edit firewall name DMZ-To-External
+    set default-action reject
+    set enable-default-log
+    edit rule 20
+        set action accept
+        set state established enable
+        set protocol all
+        set description "Allow established traffic"
+        up
+    edit rule 25
+        set action accept
+        set state related enable
+        set protocol all
+        set description "Allow related traffic"
+        up
+    edit rule 35
+        set state invalid enable
+        set disable 
+        set protocol all
+        set description "Drop invalid state"
+        set action drop
+        up
+    edit rule 46
+        set action drop
+        set protocol icmp
+        set description "Drop ICMP"
+        up
+    top
+
+# Firewall: External-To-DMZ
+edit firewall name External-To-DMZ
+    set default-action reject
+    set enable-default-log
+    edit rule 20
+        set action accept
+        set state established enable
+        set protocol all
+        set description "Allow established traffic"
+        up
+    edit rule 25
+        set action accept
+        set state related enable
+        set protocol all
+        set description "Allow related traffic"
+        up
+    edit rule 35
+        set state invalid enable
+        set disable 
+        set protocol all
+        set description "Drop invalid state"
+        set action drop
+        up
+    edit rule 46
+        set action drop
+        set protocol icmp
+        set description "Drop ICMP"
+        up
+    edit rule 200
+        set action accept
+        set source address 0.0.0.0/0
+        set destination address 192.168.0.200
+        set description "Allow Inbound HTTP"
+        up
+    top
+
+# Firewall: DMZ-To-Self
+edit firewall name DMZ-To-Self
+    set default-action reject
+    set enable-default-log
+    edit rule 20
+        set action accept
+        set state established enable
+        set protocol all
+        set description "Allow established traffic"
+        up
+    edit rule 25
+        set action accept
+        set state related enable
+        set protocol all
+        set description "Allow related traffic"
+        up
+    edit rule 35
+        set state invalid enable
+        set disable 
+        set protocol all
+        set description "Drop invalid state"
+        set action drop
+        up
+    edit rule 46
+        set action drop
+        set protocol icmp
+        set description "Drop ICMP"
+        up
+    top
+
+# Firewall: DMZ-To-Servers
+edit firewall name DMZ-To-Servers
+    set default-action reject
+    set enable-default-log
+    edit rule 20
+        set action accept
+        set state established enable
+        set protocol all
+        set description "Allow established traffic"
+        up
+    edit rule 25
+        set action accept
+        set state related enable
+        set protocol all
+        set description "Allow related traffic"
+        up
+    edit rule 35
+        set state invalid enable
+        set disable 
+        set protocol all
+        set description "Drop invalid state"
+        set action drop
+        up
+    edit rule 46
+        set action drop
+        set protocol icmp
+        set description "Drop ICMP"
+        up
+    edit rule 50
+        set action accept
+        set source group address-group TRUSTED_HOST
+        set destination address 192.168.0.0/16
+        set description "Allow trusted host"
+        up
+    top
+
+# Firewall: Workstations-To-Servers
+edit firewall name Workstations-To-Servers
+    set default-action reject
+    set enable-default-log
+    edit rule 20
+        set action accept
+        set state established enable
+        set protocol all
+        set description "Allow established traffic"
+        up
+    edit rule 25
+        set action accept
+        set state related enable
+        set protocol all
+        set description "Allow related traffic"
+        up
+    edit rule 35
+        set state invalid enable
+        set disable 
+        set protocol all
+        set description "Drop invalid state"
+        set action drop
+        up
+    edit rule 45
+        set action accept
+        set source group network-group RFC1918
+        set destination group network-group RFC1918
+        set description "Allow RFC1918"
+        up
+    top
+
+# Firewall: External-To-Workstations
+edit firewall name External-To-Workstations
+    set default-action reject
+    set enable-default-log
+    edit rule 20
+        set action accept
+        set state established enable
+        set protocol all
+        set description "Allow established traffic"
+        up
+    edit rule 25
+        set action accept
+        set state related enable
+        set protocol all
+        set description "Allow related traffic"
+        up
+    edit rule 35
+        set state invalid enable
+        set disable 
+        set protocol all
+        set description "Drop invalid state"
+        set action drop
+        up
+    edit rule 46
+        set action drop
+        set protocol icmp
+        set description "Drop ICMP"
+        up
+    edit rule 15
+        set action drop
+        set source group network-group RFC1918
+        set description "Block RFC1918"
+        up
+    top
+
+# Firewall: Servers-To-Workstations
+edit firewall name Servers-To-Workstations
+    set default-action reject
+    set enable-default-log
+    edit rule 20
+        set action accept
+        set state established enable
+        set protocol all
+        set description "Allow established traffic"
+        up
+    edit rule 25
+        set action accept
+        set state related enable
+        set protocol all
+        set description "Allow related traffic"
+        up
+    edit rule 35
+        set state invalid enable
+        set disable 
+        set protocol all
+        set description "Drop invalid state"
+        set action drop
+        up
+    edit rule 45
+        set action accept
+        set source group network-group RFC1918
+        set destination group network-group RFC1918
+        set description "Allow RFC1918"
+        up
+    top
+
+# Firewall: DMZ-To-Workstations
+edit firewall name DMZ-To-Workstations
+    set default-action reject
+    set enable-default-log
+    edit rule 20
+        set action accept
+        set state established enable
+        set protocol all
+        set description "Allow established traffic"
+        up
+    edit rule 25
+        set action accept
+        set state related enable
+        set protocol all
+        set description "Allow related traffic"
+        up
+    edit rule 35
+        set state invalid enable
+        set disable 
+        set protocol all
+        set description "Drop invalid state"
+        set action drop
+        up
+    edit rule 46
+        set action drop
+        set protocol icmp
+        set description "Drop ICMP"
+        up
+    edit rule 50
+        set action accept
+        set source group address-group TRUSTED_HOST
+        set destination address 192.168.0.0/16
+        set description "Allow trusted host"
+        up
+    top
+
+# Firewall: External-To-Servers
+edit firewall name External-To-Servers
+    set default-action reject
+    set enable-default-log
+    edit rule 20
+        set action accept
+        set state established enable
+        set protocol all
+        set description "Allow established traffic"
+        up
+    edit rule 25
+        set action accept
+        set state related enable
+        set protocol all
+        set description "Allow related traffic"
+        up
+    edit rule 35
+        set state invalid enable
+        set disable 
+        set protocol all
+        set description "Drop invalid state"
+        set action drop
+        up
+    edit rule 46
+        set action drop
+        set protocol icmp
+        set description "Drop ICMP"
+        up
+    edit rule 15
+        set action drop
+        set source group network-group RFC1918
+        set description "Block RFC1918"
+        up
+    top
+
+# Firewall: Servers-To-DMZ
+edit firewall name Servers-To-DMZ
+    set default-action reject
+    set enable-default-log
+    edit rule 20
+        set action accept
+        set state established enable
+        set protocol all
+        set description "Allow established traffic"
+        up
+    edit rule 25
+        set action accept
+        set state related enable
+        set protocol all
+        set description "Allow related traffic"
+        up
+    edit rule 35
+        set state invalid enable
+        set disable 
+        set protocol all
+        set description "Drop invalid state"
+        set action drop
+        up
+    edit rule 46
+        set action drop
+        set protocol icmp
+        set description "Drop ICMP"
+        up
+    edit rule 55
+        set source group network-group RFC1918
+        set protocol tcp
+        set description "Allow SSH from RFC1918"
+        set action accept
+        set destination group network-group RFC1918
+        set destination group port-group SSH
+        up
+    top
+
+# Firewall: Servers-To-Self
+edit firewall name Servers-To-Self
+    set default-action reject
+    set enable-default-log
+    edit rule 20
+        set action accept
+        set state established enable
+        set protocol all
+        set description "Allow established traffic"
+        up
+    edit rule 25
+        set action accept
+        set state related enable
+        set protocol all
+        set description "Allow related traffic"
+        up
+    edit rule 35
+        set state invalid enable
+        set disable 
+        set protocol all
+        set description "Drop invalid state"
+        set action drop
+        up
+    edit rule 46
+        set action drop
+        set protocol icmp
+        set description "Drop ICMP"
+        up
+    top
+
+# Firewall: Workstations-To-DMZ
+edit firewall name Workstations-To-DMZ
+    set default-action reject
+    set enable-default-log
+    edit rule 20
+        set action accept
+        set state established enable
+        set protocol all
+        set description "Allow established traffic"
+        up
+    edit rule 25
+        set action accept
+        set state related enable
+        set protocol all
+        set description "Allow related traffic"
+        up
+    edit rule 35
+        set state invalid enable
+        set disable 
+        set protocol all
+        set description "Drop invalid state"
+        set action drop
+        up
+    edit rule 46
+        set action drop
+        set protocol icmp
+        set description "Drop ICMP"
+        up
+    edit rule 55
+        set source group network-group RFC1918
+        set protocol tcp
+        set description "Allow SSH from RFC1918"
+        set action accept
+        set destination group network-group RFC1918
+        set destination group port-group SSH
+        up
+    top
+
+# Firewall: Workstations-To-External
+edit firewall name Workstations-To-External
+    set default-action reject
+    set enable-default-log
+    edit rule 20
+        set action accept
+        set state established enable
+        set protocol all
+        set description "Allow established traffic"
+        up
+    edit rule 25
+        set action accept
+        set state related enable
+        set protocol all
+        set description "Allow related traffic"
+        up
+    edit rule 35
+        set state invalid enable
+        set disable 
+        set protocol all
+        set description "Drop invalid state"
+        set action drop
+        up
+    edit rule 46
+        set action drop
+        set protocol icmp
+        set description "Drop ICMP"
+        up
+    edit rule 100
+        set action accept
+        set source address 192.168.0.0/16
+        set destination address 0.0.0.0/0
+        set description "Allow internet access"
+        up
+    top
+
+# Firewall: Workstations-To-Self
+edit firewall name Workstations-To-Self
+    set default-action reject
+    set enable-default-log
+    edit rule 20
+        set action accept
+        set state established enable
+        set protocol all
+        set description "Allow established traffic"
+        up
+    edit rule 25
+        set action accept
+        set state related enable
+        set protocol all
+        set description "Allow related traffic"
+        up
+    edit rule 35
+        set state invalid enable
+        set disable 
+        set protocol all
+        set description "Drop invalid state"
+        set action drop
+        up
+    edit rule 46
+        set action drop
+        set protocol icmp
+        set description "Drop ICMP"
+        up
+    top
+
+# Firewall: External-To-Self
+edit firewall name External-To-Self
+    set default-action reject
+    set enable-default-log
+    edit rule 20
+        set action accept
+        set state established enable
+        set protocol all
+        set description "Allow established traffic"
+        up
+    edit rule 25
+        set action accept
+        set state related enable
+        set protocol all
+        set description "Allow related traffic"
+        up
+    edit rule 35
+        set state invalid enable
+        set disable 
+        set protocol all
+        set description "Drop invalid state"
+        set action drop
+        up
+    edit rule 46
+        set action drop
+        set protocol icmp
+        set description "Drop ICMP"
+        up
+    top
+
+# Firewall: Servers-To-External
+edit firewall name Servers-To-External
+    set default-action reject
+    set enable-default-log
+    edit rule 20
+        set action accept
+        set state established enable
+        set protocol all
+        set description "Allow established traffic"
+        up
+    edit rule 25
+        set action accept
+        set state related enable
+        set protocol all
+        set description "Allow related traffic"
+        up
+    edit rule 35
+        set state invalid enable
+        set disable 
+        set protocol all
+        set description "Drop invalid state"
+        set action drop
+        up
+    edit rule 46
+        set action drop
+        set protocol icmp
+        set description "Drop ICMP"
+        up
+    edit rule 100
+        set action accept
+        set source address 192.168.0.0/16
+        set destination address 0.0.0.0/0
+        set description "Allow internet access"
+        up
+    top
+
+############################################
+############################################
+###
+###     Zone Policies
+###
+############################################
+############################################
+
+
+# Delete zone policy
+delete zone-policy
+
+# ZONE: DMZ
+edit zone-policy zone DMZ
+    set default-action reject
+    set interface eth2
+    set from Workstations firewall name Workstations-To-DMZ
+    set from External firewall name External-To-DMZ
+    set from Servers firewall name Servers-To-DMZ
+    set from Self firewall name ALLOW-ALL
+    top
+
+# ZONE: Workstations
+edit zone-policy zone Workstations
+    set default-action reject
+    set interface eth3
+    set from DMZ firewall name DMZ-To-Workstations
+    set from External firewall name External-To-Workstations
+    set from Servers firewall name Servers-To-Workstations
+    set from Self firewall name ALLOW-ALL
+    top
+
+# ZONE: External
+edit zone-policy zone External
+    set default-action reject
+    set interface eth0
+    set from DMZ firewall name DMZ-To-External
+    set from Workstations firewall name Workstations-To-External
+    set from Servers firewall name Servers-To-External
+    set from Self firewall name ALLOW-ALL
+    top
+
+# ZONE: Servers
+edit zone-policy zone Servers
+    set default-action reject
+    set interface eth1
+    set from DMZ firewall name DMZ-To-Servers
+    set from Workstations firewall name Workstations-To-Servers
+    set from External firewall name External-To-Servers
+    set from Self firewall name ALLOW-ALL
+    top
+
+# ZONE: Self
+edit zone-policy zone Self
+    set default-action reject
+    set from DMZ firewall name DMZ-To-Self
+    set from Workstations firewall name Workstations-To-Self
+    set from External firewall name External-To-Self
+    set from Servers firewall name Servers-To-Self
+    set local-zone
+    top
+
+############################################
+############################################
+###
+###     NAT Rules
+###
+############################################
+############################################
+
+
+# Delete all NAT rules
+delete nat
+
+# source Rules
+edit nat source rule 10
+        set source address 192.168.0.0/16
+        set translation address 23.45.67.89
+        set destination address 0.0.0.0/0
+        set outbound-interface eth0
+        set description "NAT Everything"
+        top
+
+# destination Rules
+edit nat destination rule 10
+        set inbound-interface any
+        set source address 0.0.0.0/0
+        set protocol tcp
+        set description "Inbound HTTP"
+        set translation address 192.168.0.200
+        set destination address 23.45.67.89
+        set destination port 80
+        top
+
+
+# Action to take
+compare
+
+
+exit

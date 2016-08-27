@@ -1,0 +1,174 @@
+###
+### DISCLAIMER: This is not intended to be a firewall template, its purpose is to demonstrate the layout and usage of configuration directives
+###
+### See config.yaml for further details on directives
+###
+
+ZonePolicy:
+    FilterSelfOutbound: False
+    Zones:
+        External:
+            - eth0
+        Servers:
+            - eth1
+        DMZ:
+            - eth2
+        Workstations:
+            - eth3
+
+UnsafeZones:
+    - External
+    - Self
+    - DMZ
+
+AddressGroups:
+    TRUSTED_HOST:
+        - 192.168.0.10
+
+NetworkGroups:
+    RFC1918:
+        - 10.0.0.0/8
+        - 172.16.0.0/12
+        - 192.168.0.0/16
+
+PortGroups:
+    SSH:
+        - 22
+
+RuleTemplates:
+    BLOCK_RFC1918:
+        number: 15
+        description: Block RFC1918
+        action: drop
+        source:
+            - group network-group RFC1918
+    
+    ALLOW_ESTABLISHED:
+        number: 20
+        description: Allow established traffic
+        action: accept
+        protocol: all
+        state: established enable
+    
+    ALLOW_RELATED:
+        number: 25
+        description: Allow related traffic
+        action: accept
+        protocol: all
+        state: related enable
+    
+    DROP_INVALID_STATE:
+        number: 35
+        description: Drop invalid state
+        disable: ''
+        action: drop
+        protocol: all
+        state: invalid enable
+
+    ALLOW_RFC1918:
+        number: 45
+        description: Allow RFC1918
+        action: accept
+        source:
+            - group network-group RFC1918
+        destination:
+            - group network-group RFC1918
+
+    DROP_ICMP:
+        number: 46
+        description: Drop ICMP
+        action: drop
+        protocol: icmp
+
+    ALLOW_TRUSTED_HOST:
+        number: 50
+        description: Allow trusted host
+        action: accept
+        source:
+            - group address-group TRUSTED_HOST
+        destination:
+            - address 192.168.0.0/16
+    
+    ALLOW_RFC1918_SSH:
+        number: 55
+        description: Allow SSH from RFC1918
+        action: accept
+        protocol: tcp
+        source:
+            - group network-group RFC1918
+        destination:
+            - group network-group RFC1918
+            - group port-group SSH
+
+    ALLOW_INTERNET:
+        number: 100
+        description: Allow internet access
+        action: accept
+        source:
+            - address 192.168.0.0/16
+        destination:
+            - address 0.0.0.0/0
+
+    ALLOW_INBOUND_HTTP:
+        number: 200
+        description: Allow Inbound HTTP
+        action: accept
+        source:
+            - address 0.0.0.0/0
+        destination:
+            - address 192.168.0.200
+
+
+FirewallRules:
+    ALL_ZONES:
+        - ALLOW_ESTABLISHED
+        - ALLOW_RELATED
+        - DROP_INVALID_STATE
+
+    SAFE_ZONES:
+        - ALLOW_RFC1918
+
+    UNSAFE_ZONES:
+        - DROP_ICMP
+
+    FROM_External:
+        - BLOCK_RFC1918
+
+    TO_DMZ:
+        - ALLOW_RFC1918_SSH
+
+    FROM_DMZ:
+        - ALLOW_TRUSTED_HOST
+
+    Workstations-To-External:
+        - ALLOW_INTERNET
+
+    Servers-To-External:
+        - ALLOW_INTERNET
+
+    External-To-DMZ:
+        - ALLOW_INBOUND_HTTP
+
+NATRules:
+    source:
+        10:
+            description: NAT Everything
+            outbound-interface: eth0
+            translation: address 23.45.67.89
+            destination:
+                - address 0.0.0.0/0
+            source:
+                - address 192.168.0.0/16
+
+    destination:
+        10:
+            description: Inbound HTTP
+            inbound-interface: any
+            protocol: tcp
+            translation: address 192.168.0.200
+            destination:
+                - address 23.45.67.89
+                - port 80
+            source:
+                - address 0.0.0.0/0
+

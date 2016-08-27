@@ -1,0 +1,10 @@
+
+IncludeConfigs:
+    - ./fake_include.yaml
+
+ZonePolicy:
+    FilterSelfOutbound: False
+    Zones:
+        External:
+            - eth0
+
