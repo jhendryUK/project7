@@ -83,6 +83,11 @@ class ErrorUnknownZonePairUsed(ErrorBaseException):
     def message(self):
         return "You are creating a rule in an undefined zone-pair {0}".format(self.pair)
 
+class ErrorFirewallNameTooLong(ErrorBaseException):
+    exit_code = 11
+    def message(self):
+        return "Firewall name too long {0}. Must be 28 characters or less".format(self.name)
+
 class GroupManager(object):
     """
     Holds the groups for a group type and can print the brief view or full config
@@ -401,6 +406,8 @@ class FirewallHost(object):
         for src, dst in itertools.permutations(self._zones, 2):
             if self._filter_outbound(src):
                 zone = "{0}-To-{1}".format(src, dst)
+                if len(zone) > 28:
+                    raise ErrorFirewallNameTooLong(name=zone)
                 self._rules[zone] = []
 
 
