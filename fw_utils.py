@@ -66,7 +66,7 @@ class ErrorRedefiningRuleTemplate(ErrorBaseException):
 class ErrorRedefiningRuleTemplateNumber(ErrorBaseException):
     exit_code = 8
     def message(self):
-        return "You are reusing rule number {0} in rule {1}. This is dangerous and not allowed".format(self.number, self.name)
+        return "You are reusing rule number {0} in rule {1} (Original Rule {2}). This is dangerous and not allowed".format(self.number, self.name, self.orig)
 
 class ErrorNotDefinedSelfOutboundPolicy(ErrorBaseException):
     exit_code = 9
@@ -228,7 +228,7 @@ class RuleTemplates(RuleManager):
         new_number = options['number']
         for rule in self.rules:
             if new_number == getattr(self, rule)['number']:
-               raise ErrorRedefiningRuleTemplateNumber(number=new_number, name=name)
+               raise ErrorRedefiningRuleTemplateNumber(number=new_number, name=name, orig=rule)
 
     
 
