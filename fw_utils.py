@@ -84,7 +84,7 @@ class ErrorUnknownZonePairUsed(ErrorBaseException):
         return "You are creating a rule in an undefined zone-pair {0}".format(self.pair)
 
 class ErrorFirewallNameTooLong(ErrorBaseException):
-    exit_code = 11
+    exit_code = 12
     def message(self):
         return "Firewall name too long {0}. Must be 28 characters or less".format(self.name)
 
