@@ -672,7 +672,7 @@ class FirewallHost(object):
             config += self._generate_small_msg('Firewall: ALLOW-ALL')
             config += "set firewall name ALLOW-ALL default-action accept\n"
 
-        for zone in self._rules:
+        for zone in sorted(self._rules):
             config += self._generate_small_msg("Firewall: {0}".format(zone))
             config += self._yaml_rule_templates.config(zone, self._rules, brief)
 
